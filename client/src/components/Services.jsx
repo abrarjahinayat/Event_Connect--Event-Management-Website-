@@ -72,7 +72,7 @@ const Services = () => {
       count: '120+',
       countLabel: 'Venues',
       rating: '4.6★',
-      href: '/services/community-centers'
+      href: 'community-centers'
     },
     {
       icon: '📋',
@@ -81,7 +81,7 @@ const Services = () => {
       count: '200+',
       countLabel: 'Managers',
       rating: '4.9★',
-      href: '/services/event-management'
+      href: 'event-management'
     },
     {
       icon: '📸',
@@ -90,7 +90,7 @@ const Services = () => {
       count: '300+',
       countLabel: 'Photographers',
       rating: '4.7★',
-      href: '/services/photographers'
+      href: 'photographers'
     },
     {
       icon: '🎥',
@@ -99,7 +99,7 @@ const Services = () => {
       count: '180+',
       countLabel: 'Videographers',
       rating: '4.8★',
-      href: '/services/cinematographers'
+      href: 'cinematographers'
     },
     {
       icon: '👨‍🍳',
@@ -108,7 +108,7 @@ const Services = () => {
       count: '250+',
       countLabel: 'Caterers',
       rating: '4.9★',
-      href: '/services/cooks-caterers'
+      href: 'cooks-caterers'
     }
   ];
 
