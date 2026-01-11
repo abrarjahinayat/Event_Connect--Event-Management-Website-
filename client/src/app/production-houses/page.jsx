@@ -1,244 +1,405 @@
-"use client";
-import React, { useState } from 'react';
+// File: src/app/production-houses/page.jsx
 
-const Container = ({ children }) => {
+'use client';
+
+import React, { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { MapPin, Star, CheckCircle, XCircle, DollarSign, Search, Filter, X } from 'lucide-react';
+import { productionHousesData } from './data';
+
+// Production House Card Component
+const ProductionHouseCard = ({ house, onViewDetails }) => {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      {children}
+    <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+      <div className="relative h-56 overflow-hidden">
+        <img 
+          src={house.image} 
+          alt={house.name}
+          className="w-full h-full object-cover"
+        />
+        
+        <div className="absolute top-4 right-4">
+          {house.available ? (
+            <span className="flex items-center gap-1 bg-green-500 text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-lg">
+              <CheckCircle size={16} />
+              Available
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 bg-red-500 text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-lg">
+              <XCircle size={16} />
+              Booked
+            </span>
+          )}
+        </div>
+
+        <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
+          <Star size={16} className="fill-yellow-400 text-yellow-400" />
+          <span className="font-semibold text-gray-900">{house.rating}</span>
+          <span className="text-gray-500 text-sm">({house.reviewCount})</span>
+        </div>
+      </div>
+
+      <div className="p-5">
+        <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">
+          {house.name}
+        </h3>
+
+        <div className="flex items-center gap-2 text-gray-600 mb-3">
+          <MapPin size={18} className="text-cyan-600" />
+          <span className="text-sm">{house.location}</span>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-4">
+          {house.specialties.slice(0, 3).map((specialty, index) => (
+            <span 
+              key={index}
+              className="bg-cyan-50 text-cyan-700 px-3 py-1 rounded-full text-xs font-medium border border-cyan-200"
+            >
+              {specialty}
+            </span>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+          <div className="flex items-center gap-1.5">
+            <DollarSign size={18} className="text-gray-500" />
+            <span className="text-sm text-gray-500">Starting at</span>
+            <span className="text-lg font-bold text-gray-900">
+              ৳{house.startingPrice.toLocaleString()}
+            </span>
+          </div>
+        </div>
+
+        <button 
+          onClick={() => onViewDetails(house.id)}
+          className="w-full mt-4 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-3 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+        >
+          View Details
+        </button>
+      </div>
     </div>
   );
 };
 
-const ProductionHousesPage = () => {
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+export default function ProductionHousesPage() {
+  const router = useRouter();
+  
+  // State for filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [bookingData, setBookingData] = useState({
-    location: '',
-    date: '',
-    price: ''
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    availability: 'all', // 'all', 'available', 'booked'
+    priceRange: [0, 500000],
+    location: 'all',
+    specialty: 'all',
+    minRating: 0
   });
 
-  const handleBookingChange = (e) => {
-    const { name, value } = e.target;
-    setBookingData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  // Get unique locations and specialties
+  const locations = ['all', ...new Set(productionHousesData.map(h => h.location))];
+  const allSpecialties = ['all', ...new Set(productionHousesData.flatMap(h => h.specialties))];
+
+  // Filter logic
+  const filteredHouses = useMemo(() => {
+    return productionHousesData.filter(house => {
+      // Search filter
+      const matchesSearch = house.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           house.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           house.specialties.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      // Availability filter
+      const matchesAvailability = filters.availability === 'all' || 
+                                 (filters.availability === 'available' && house.available) ||
+                                 (filters.availability === 'booked' && !house.available);
+      
+      // Price range filter
+      const matchesPrice = house.startingPrice >= filters.priceRange[0] && 
+                          house.startingPrice <= filters.priceRange[1];
+      
+      // Location filter
+      const matchesLocation = filters.location === 'all' || house.location === filters.location;
+      
+      // Specialty filter
+      const matchesSpecialty = filters.specialty === 'all' || 
+                              house.specialties.includes(filters.specialty);
+      
+      // Rating filter
+      const matchesRating = house.rating >= filters.minRating;
+
+      return matchesSearch && matchesAvailability && matchesPrice && 
+             matchesLocation && matchesSpecialty && matchesRating;
+    });
+  }, [searchQuery, filters]);
+
+  const handleViewDetails = (id) => {
+    router.push(`/production-houses/${id}`);
   };
 
-  const handleSearch = () => {
-    console.log('Searching with:', bookingData);
-    // Add your search logic here
+  const resetFilters = () => {
+    setFilters({
+      availability: 'all',
+      priceRange: [0, 500000],
+      location: 'all',
+      specialty: 'all',
+      minRating: 0
+    });
+    setSearchQuery('');
+  };
+
+  const activeFiltersCount = () => {
+    let count = 0;
+    if (filters.availability !== 'all') count++;
+    if (filters.priceRange[0] !== 0 || filters.priceRange[1] !== 500000) count++;
+    if (filters.location !== 'all') count++;
+    if (filters.specialty !== 'all') count++;
+    if (filters.minRating > 0) count++;
+    return count;
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-cyan-50">
       {/* Header */}
-      <header className="bg-cyan-400 py-6">
-        <Container>
-          <div className="flex items-center justify-between">
-            {/* Title with Icon */}
-            <div className="flex items-center gap-3">
-              <div className="text-4xl">🎬</div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Production Houses
-              </h1>
-            </div>
+      <div className="bg-cyan-600 text-white py-16 px-4">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            Production Houses in Bangladesh
+          </h1>
+          <p className="text-cyan-100 text-lg max-w-2xl">
+            Discover and book premium production houses in Dhaka for your next project.
+          </p>
+        </div>
+      </div>
 
-            {/* Right Side Controls */}
-            <div className="flex items-center gap-4">
-              {/* View Toggle Buttons */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded ${
-                    viewMode === 'list'
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-white text-gray-900 hover:bg-gray-100'
-                  } transition-colors`}
-                  aria-label="List view"
-                >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded ${
-                    viewMode === 'grid'
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-white text-gray-900 hover:bg-gray-100'
-                  } transition-colors`}
-                  aria-label="Grid view"
-                >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-                    />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Search Bar */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Search and Filter Bar */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search Bar */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
+                placeholder="Search by name, location, or specialty..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search quick access"
-                className="px-4 py-2 border-2 border-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 w-64"
+                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
               />
-            </div>
-          </div>
-        </Container>
-      </header>
-
-      {/* Main Content */}
-      <Container>
-        <div className="py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Left Sidebar - Booking Form */}
-            <div className="lg:col-span-1">
-              <div className="bg-white border-2 border-cyan-400 rounded-lg p-6 sticky top-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-6">
-                  Book a production house
-                </h2>
-
-                {/* Location Input */}
-                <div className="mb-4">
-                  <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
-                    </div>
-                    <input
-                      type="text"
-                      name="location"
-                      value={bookingData.location}
-                      onChange={handleBookingChange}
-                      placeholder="booking from"
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                {/* Date Input */}
-                <div className="mb-4">
-                  <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                    </div>
-                    <input
-                      type="date"
-                      name="date"
-                      value={bookingData.date}
-                      onChange={handleBookingChange}
-                      placeholder="booking date"
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                {/* Price Input */}
-                <div className="mb-6">
-                  <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                    </div>
-                    <input
-                      type="text"
-                      name="price"
-                      value={bookingData.price}
-                      onChange={handleBookingChange}
-                      placeholder="booking price"
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                {/* Search Button */}
+              {searchQuery && (
                 <button
-                  onClick={handleSearch}
-                  className="w-full bg-black hover:bg-gray-800 text-white font-semibold py-3 rounded-lg transition-colors"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  Search
+                  <X size={20} />
                 </button>
-              </div>
+              )}
             </div>
 
-            {/* Right Side - Content Area */}
-            <div className="lg:col-span-3">
-              <div className="bg-white rounded-lg p-8 min-h-[400px] flex items-center justify-center">
-                <p className="text-gray-500 text-lg">
-                  {viewMode === 'grid' 
-                    ? 'Production houses will be displayed in grid view here' 
-                    : 'Production houses will be displayed in list view here'}
-                </p>
+            {/* Filter Toggle Button */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-semibold text-gray-700 transition-colors relative"
+            >
+              <Filter size={20} />
+              Filters
+              {activeFiltersCount() > 0 && (
+                <span className="absolute -top-2 -right-2 bg-cyan-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                  {activeFiltersCount()}
+                </span>
+              )}
+            </button>
+
+            {/* Reset Filters Button */}
+            {(activeFiltersCount() > 0 || searchQuery) && (
+              <button
+                onClick={resetFilters}
+                className="px-6 py-3 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-semibold transition-colors"
+              >
+                Reset All
+              </button>
+            )}
+          </div>
+
+          {/* Filter Panel */}
+          {showFilters && (
+            <div className="mt-6 pt-6 border-t border-gray-200 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Availability Filter */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Availability
+                </label>
+                <select
+                  value={filters.availability}
+                  onChange={(e) => setFilters({ ...filters, availability: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                >
+                  <option value="all">All Studios</option>
+                  <option value="available">Available Only</option>
+                  <option value="booked">Booked Only</option>
+                </select>
               </div>
+
+              {/* Location Filter */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Location
+                </label>
+                <select
+                  value={filters.location}
+                  onChange={(e) => setFilters({ ...filters, location: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                >
+                  {locations.map(loc => (
+                    <option key={loc} value={loc}>
+                      {loc === 'all' ? 'All Locations' : loc}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Specialty Filter */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Specialty
+                </label>
+                <select
+                  value={filters.specialty}
+                  onChange={(e) => setFilters({ ...filters, specialty: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                >
+                  {allSpecialties.map(spec => (
+                    <option key={spec} value={spec}>
+                      {spec === 'all' ? 'All Specialties' : spec}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Price Range Filter */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Price Range: ৳{filters.priceRange[0].toLocaleString()} - ৳{filters.priceRange[1].toLocaleString()}
+                </label>
+                <div className="flex gap-4 items-center">
+                  <input
+                    type="range"
+                    min="0"
+                    max="500000"
+                    step="10000"
+                    value={filters.priceRange[0]}
+                    onChange={(e) => setFilters({ 
+                      ...filters, 
+                      priceRange: [parseInt(e.target.value), filters.priceRange[1]] 
+                    })}
+                    className="flex-1"
+                  />
+                  <input
+                    type="range"
+                    min="0"
+                    max="500000"
+                    step="10000"
+                    value={filters.priceRange[1]}
+                    onChange={(e) => setFilters({ 
+                      ...filters, 
+                      priceRange: [filters.priceRange[0], parseInt(e.target.value)] 
+                    })}
+                    className="flex-1"
+                  />
+                </div>
+                <div className="flex justify-between mt-2 text-xs text-gray-500">
+                  <span>৳0</span>
+                  <span>৳500,000</span>
+                </div>
+              </div>
+
+              {/* Minimum Rating Filter */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Minimum Rating
+                </label>
+                <select
+                  value={filters.minRating}
+                  onChange={(e) => setFilters({ ...filters, minRating: parseFloat(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                >
+                  <option value="0">Any Rating</option>
+                  <option value="4.0">4.0+ Stars</option>
+                  <option value="4.5">4.5+ Stars</option>
+                  <option value="4.8">4.8+ Stars</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Stats Bar */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+            <div>
+              <div className="text-3xl font-bold text-cyan-600 mb-1">
+                {filteredHouses.length}
+              </div>
+              <div className="text-gray-600 text-sm">
+                {filteredHouses.length === productionHousesData.length 
+                  ? 'Total Production Houses' 
+                  : 'Matching Results'}
+              </div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-green-600 mb-1">
+                {filteredHouses.filter(h => h.available).length}
+              </div>
+              <div className="text-gray-600 text-sm">Available Now</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-yellow-600 mb-1">
+                {filteredHouses.length > 0 
+                  ? (filteredHouses.reduce((sum, h) => sum + h.rating, 0) / filteredHouses.length).toFixed(1)
+                  : '0.0'}
+              </div>
+              <div className="text-gray-600 text-sm">Average Rating</div>
             </div>
           </div>
         </div>
-      </Container>
+
+        {/* Results Info */}
+        {(searchQuery || activeFiltersCount() > 0) && (
+          <div className="mb-6 flex items-center justify-between bg-cyan-50 border border-cyan-200 rounded-lg p-4">
+            <p className="text-cyan-800">
+              <span className="font-semibold">{filteredHouses.length}</span> production house{filteredHouses.length !== 1 ? 's' : ''} found
+              {searchQuery && <span> matching "<span className="font-semibold">{searchQuery}</span>"</span>}
+            </p>
+          </div>
+        )}
+
+        {/* Production Houses Grid */}
+        {filteredHouses.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredHouses.map((house) => (
+              <ProductionHouseCard 
+                key={house.id} 
+                house={house}
+                onViewDetails={handleViewDetails}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-md p-12 text-center">
+            <div className="text-gray-400 mb-4">
+              <Search size={64} className="mx-auto" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">No Results Found</h3>
+            <p className="text-gray-600 mb-6">
+              We couldn't find any production houses matching your criteria.
+            </p>
+            <button
+              onClick={resetFilters}
+              className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+            >
+              Clear Filters
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
-};
-
-export default ProductionHousesPage;
+}
