@@ -1,8 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 
-@theme {
-  --font-sirin-stencil: var(--font-sirin-stencil);
-  --font-rubik-maps: var(--font-rubik-maps);
-  --font-outfit: var(--font-outfit);
-}
+
