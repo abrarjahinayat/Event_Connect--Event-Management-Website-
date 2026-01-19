@@ -1,25 +1,22 @@
-// File: src/app/community-centers/page.jsx
-
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Star, CheckCircle, XCircle, DollarSign, Search, Filter, X, Users } from 'lucide-react';
-import { communityCentersData } from './data';
+import { MapPin, Star, CheckCircle, XCircle, DollarSign, Search, Filter, X, Loader2, ArrowLeft } from 'lucide-react';
 
-// Community Center Card Component
-const CommunityCenterCard = ({ center, onViewDetails }) => {
+// Production House Card Component
+const ProductionHouseCard = ({ house, onViewDetails }) => {
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
       <div className="relative h-56 overflow-hidden">
         <img 
-          src={center.image} 
-          alt={center.name}
+          src={house.image?.[0] || house.images?.[0] || '/placeholder.jpg'} 
+          alt={house.companyName}
           className="w-full h-full object-cover"
         />
         
         <div className="absolute top-4 right-4">
-          {center.available ? (
+          {house.available || house.availability === 'Available' ? (
             <span className="flex items-center gap-1 bg-green-500 text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-lg">
               <CheckCircle size={16} />
               Available
@@ -34,34 +31,23 @@ const CommunityCenterCard = ({ center, onViewDetails }) => {
 
         <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
           <Star size={16} className="fill-yellow-400 text-yellow-400" />
-          <span className="font-semibold text-gray-900">{center.rating}</span>
-          <span className="text-gray-500 text-sm">({center.reviewCount})</span>
+          <span className="font-semibold text-gray-900">{house.rating || 0}</span>
+          <span className="text-gray-500 text-sm">({house.reviewCount || 0})</span>
         </div>
-
-        {center.verified && (
-          <div className="absolute top-4 left-4 bg-blue-500 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg">
-            ✓ Verified
-          </div>
-        )}
       </div>
 
       <div className="p-5">
         <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">
-          {center.name}
+          {house.companyName}
         </h3>
 
-        <div className="flex items-center gap-2 text-gray-600 mb-2">
-          <MapPin size={18} className="text-cyan-600" />
-          <span className="text-sm">{center.location}</span>
-        </div>
-
         <div className="flex items-center gap-2 text-gray-600 mb-3">
-          <Users size={18} className="text-purple-600" />
-          <span className="text-sm font-semibold">Capacity: {center.capacity} guests</span>
+          <MapPin size={18} className="text-cyan-600" />
+          <span className="text-sm">{house.location}</span>
         </div>
 
         <div className="flex flex-wrap gap-2 mb-4">
-          {center.specialties.slice(0, 3).map((specialty, index) => (
+          {house.specialties?.slice(0, 3).map((specialty, index) => (
             <span 
               key={index}
               className="bg-cyan-50 text-cyan-700 px-3 py-1 rounded-full text-xs font-medium border border-cyan-200"
@@ -76,13 +62,13 @@ const CommunityCenterCard = ({ center, onViewDetails }) => {
             <DollarSign size={18} className="text-gray-500" />
             <span className="text-sm text-gray-500">Starting at</span>
             <span className="text-lg font-bold text-gray-900">
-              ৳{center.startingPrice.toLocaleString()}
+              ৳{house.startingPrice?.toLocaleString()}
             </span>
           </div>
         </div>
 
         <button 
-          onClick={() => onViewDetails(center.id)}
+          onClick={() => onViewDetails(house.slug || house._id)}
           className="w-full mt-4 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-3 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
         >
           View Details
@@ -92,62 +78,84 @@ const CommunityCenterCard = ({ center, onViewDetails }) => {
   );
 };
 
-export default function CommunityCentersPage() {
+export default function ProductionHousesPage() {
   const router = useRouter();
   
-  // State for filters
+  // State
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
-    availability: 'all', // 'all', 'available', 'booked'
+    availability: 'all',
     priceRange: [0, 500000],
     location: 'all',
     specialty: 'all',
-    minRating: 0,
-    capacity: 0 // minimum capacity
+    minRating: 0
   });
 
+  // Fetch services from API
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      setLoading(true);
+      
+      // Build query string
+      const queryParams = new URLSearchParams({
+        serviceCategory: 'Community Centers',
+        ...(filters.availability !== 'all' && { availability: filters.availability }),
+        ...(filters.location !== 'all' && { location: filters.location }),
+        ...(filters.minRating > 0 && { minRating: filters.minRating }),
+        ...(searchQuery && { search: searchQuery }),
+        minPrice: filters.priceRange[0],
+        maxPrice: filters.priceRange[1],
+      });
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API}/services/allservices?${queryParams}`
+      );
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setServices(data.data);
+      } else {
+        console.error('Failed to fetch services:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching services:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Refetch when filters change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchServices();
+    }, 500); // Debounce
+
+    return () => clearTimeout(timer);
+  }, [filters, searchQuery]);
+
   // Get unique locations and specialties
-  const locations = ['all', ...new Set(communityCentersData.map(c => c.location))];
-  const allSpecialties = ['all', ...new Set(communityCentersData.flatMap(c => c.specialties))];
+  const locations = ['all', ...new Set(services.map(h => h.location).filter(Boolean))];
+  const allSpecialties = ['all', ...new Set(services.flatMap(h => h.specialties || []))];
 
-  // Filter logic
-  const filteredCenters = useMemo(() => {
-    return communityCentersData.filter(center => {
-      // Search filter
-      const matchesSearch = center.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           center.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           center.specialties.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
-      
-      // Availability filter
-      const matchesAvailability = filters.availability === 'all' || 
-                                 (filters.availability === 'available' && center.available) ||
-                                 (filters.availability === 'booked' && !center.available);
-      
-      // Price range filter
-      const matchesPrice = center.startingPrice >= filters.priceRange[0] && 
-                          center.startingPrice <= filters.priceRange[1];
-      
-      // Location filter
-      const matchesLocation = filters.location === 'all' || center.location === filters.location;
-      
-      // Specialty filter
+  // Filter logic (client-side filtering for specialty)
+  const filteredHouses = useMemo(() => {
+    return services.filter(house => {
       const matchesSpecialty = filters.specialty === 'all' || 
-                              center.specialties.includes(filters.specialty);
-      
-      // Rating filter
-      const matchesRating = center.rating >= filters.minRating;
-
-      // Capacity filter
-      const matchesCapacity = center.capacity >= filters.capacity;
-
-      return matchesSearch && matchesAvailability && matchesPrice && 
-             matchesLocation && matchesSpecialty && matchesRating && matchesCapacity;
+                              house.specialties?.includes(filters.specialty);
+      return matchesSpecialty;
     });
-  }, [searchQuery, filters]);
+  }, [services, filters.specialty]);
 
-  const handleViewDetails = (id) => {
-    router.push(`/community-centers/${id}`);
+  const handleViewDetails = (identifier) => {
+    router.push(`/community-centers/${identifier}`);
   };
 
   const resetFilters = () => {
@@ -156,8 +164,7 @@ export default function CommunityCentersPage() {
       priceRange: [0, 500000],
       location: 'all',
       specialty: 'all',
-      minRating: 0,
-      capacity: 0
+      minRating: 0
     });
     setSearchQuery('');
   };
@@ -169,20 +176,37 @@ export default function CommunityCentersPage() {
     if (filters.location !== 'all') count++;
     if (filters.specialty !== 'all') count++;
     if (filters.minRating > 0) count++;
-    if (filters.capacity > 0) count++;
     return count;
   };
+
+  if (loading && services.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-cyan-50">
+        <div className="text-center">
+          <Loader2 className="w-16 h-16 animate-spin text-cyan-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading community centers and houses...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-cyan-50">
       {/* Header */}
       <div className="bg-cyan-600 text-white py-16 px-4">
         <div className="max-w-7xl mx-auto">
+           <button
+            onClick={() => router.push('/')}
+            className="flex items-center gap-2 text-lg hover:text-black font-semibold mb-4"
+          >
+            <ArrowLeft size={20} />
+            Back to Home Page
+          </button>
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             Community Centers in Bangladesh
           </h1>
           <p className="text-cyan-100 text-lg max-w-2xl">
-            Find and book the perfect community center for your wedding, corporate event, or celebration in Dhaka.
+            Discover and book premium community centers in Dhaka for your next project.
           </p>
         </div>
       </div>
@@ -196,7 +220,7 @@ export default function CommunityCentersPage() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
-                placeholder="Search by name, location, or event type..."
+                placeholder="Search by name, location, or specialty..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
@@ -249,7 +273,7 @@ export default function CommunityCentersPage() {
                   onChange={(e) => setFilters({ ...filters, availability: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                 >
-                  <option value="all">All Centers</option>
+                  <option value="all">All Studios</option>
                   <option value="available">Available Only</option>
                   <option value="booked">Booked Only</option>
                 </select>
@@ -276,7 +300,7 @@ export default function CommunityCentersPage() {
               {/* Specialty Filter */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Event Type
+                  Specialty
                 </label>
                 <select
                   value={filters.specialty}
@@ -285,34 +309,14 @@ export default function CommunityCentersPage() {
                 >
                   {allSpecialties.map(spec => (
                     <option key={spec} value={spec}>
-                      {spec === 'all' ? 'All Event Types' : spec}
+                      {spec === 'all' ? 'All Specialties' : spec}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Capacity Filter */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Minimum Capacity: {filters.capacity} guests
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="1000"
-                  step="50"
-                  value={filters.capacity}
-                  onChange={(e) => setFilters({ ...filters, capacity: parseInt(e.target.value) })}
-                  className="w-full"
-                />
-                <div className="flex justify-between mt-1 text-xs text-gray-500">
-                  <span>0</span>
-                  <span>1000</span>
-                </div>
-              </div>
-
               {/* Price Range Filter */}
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Price Range: ৳{filters.priceRange[0].toLocaleString()} - ৳{filters.priceRange[1].toLocaleString()}
                 </label>
@@ -342,10 +346,6 @@ export default function CommunityCentersPage() {
                     className="flex-1"
                   />
                 </div>
-                <div className="flex justify-between mt-1 text-xs text-gray-500">
-                  <span>৳0</span>
-                  <span>৳500,000</span>
-                </div>
               </div>
 
               {/* Minimum Rating Filter */}
@@ -373,24 +373,22 @@ export default function CommunityCentersPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div>
               <div className="text-3xl font-bold text-cyan-600 mb-1">
-                {filteredCenters.length}
+                {filteredHouses.length}
               </div>
               <div className="text-gray-600 text-sm">
-                {filteredCenters.length === communityCentersData.length 
-                  ? 'Total Community Centers' 
-                  : 'Matching Results'}
+                Matching Results
               </div>
             </div>
             <div>
               <div className="text-3xl font-bold text-green-600 mb-1">
-                {filteredCenters.filter(c => c.available).length}
+                {filteredHouses.filter(h => h.available || h.availability === 'Available').length}
               </div>
               <div className="text-gray-600 text-sm">Available Now</div>
             </div>
             <div>
               <div className="text-3xl font-bold text-yellow-600 mb-1">
-                {filteredCenters.length > 0 
-                  ? (filteredCenters.reduce((sum, c) => sum + c.rating, 0) / filteredCenters.length).toFixed(1)
+                {filteredHouses.length > 0 
+                  ? (filteredHouses.reduce((sum, h) => sum + (h.rating || 0), 0) / filteredHouses.length).toFixed(1)
                   : '0.0'}
               </div>
               <div className="text-gray-600 text-sm">Average Rating</div>
@@ -398,23 +396,13 @@ export default function CommunityCentersPage() {
           </div>
         </div>
 
-        {/* Results Info */}
-        {(searchQuery || activeFiltersCount() > 0) && (
-          <div className="mb-6 flex items-center justify-between bg-cyan-50 border border-cyan-200 rounded-lg p-4">
-            <p className="text-cyan-800">
-              <span className="font-semibold">{filteredCenters.length}</span> community center{filteredCenters.length !== 1 ? 's' : ''} found
-              {searchQuery && <span> matching "<span className="font-semibold">{searchQuery}</span>"</span>}
-            </p>
-          </div>
-        )}
-
-        {/* Community Centers Grid */}
-        {filteredCenters.length > 0 ? (
+        {/* Production Houses Grid */}
+        {filteredHouses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredCenters.map((center) => (
-              <CommunityCenterCard 
-                key={center.id} 
-                center={center}
+            {filteredHouses.map((house) => (
+              <ProductionHouseCard 
+                key={house._id} 
+                house={house}
                 onViewDetails={handleViewDetails}
               />
             ))}
@@ -426,7 +414,7 @@ export default function CommunityCentersPage() {
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">No Results Found</h3>
             <p className="text-gray-600 mb-6">
-              We couldn't find any community centers matching your criteria.
+              We couldn't find any production houses matching your criteria.
             </p>
             <button
               onClick={resetFilters}

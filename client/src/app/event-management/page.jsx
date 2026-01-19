@@ -203,10 +203,10 @@ export default function ProductionHousesPage() {
             Back to Home Page
           </button>
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Production Houses in Bangladesh
+            Event Management Services in Bangladesh
           </h1>
           <p className="text-cyan-100 text-lg max-w-2xl">
-            Discover and book premium production houses in Dhaka for your next project.
+            Discover and book premium event management services in Dhaka for your next project.
           </p>
         </div>
       </div>
