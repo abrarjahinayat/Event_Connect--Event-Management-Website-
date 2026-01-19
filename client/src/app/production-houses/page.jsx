@@ -1,11 +1,8 @@
-// File: src/app/production-houses/page.jsx
-
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Star, CheckCircle, XCircle, DollarSign, Search, Filter, X } from 'lucide-react';
-import { productionHousesData } from './data';
+import { MapPin, Star, CheckCircle, XCircle, DollarSign, Search, Filter, X, Loader2 } from 'lucide-react';
 
 // Production House Card Component
 const ProductionHouseCard = ({ house, onViewDetails }) => {
@@ -13,13 +10,13 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
     <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
       <div className="relative h-56 overflow-hidden">
         <img 
-          src={house.image} 
-          alt={house.name}
+          src={house.image?.[0] || house.images?.[0] || '/placeholder.jpg'} 
+          alt={house.companyName}
           className="w-full h-full object-cover"
         />
         
         <div className="absolute top-4 right-4">
-          {house.available ? (
+          {house.available || house.availability === 'Available' ? (
             <span className="flex items-center gap-1 bg-green-500 text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-lg">
               <CheckCircle size={16} />
               Available
@@ -34,14 +31,14 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
 
         <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
           <Star size={16} className="fill-yellow-400 text-yellow-400" />
-          <span className="font-semibold text-gray-900">{house.rating}</span>
-          <span className="text-gray-500 text-sm">({house.reviewCount})</span>
+          <span className="font-semibold text-gray-900">{house.rating || 0}</span>
+          <span className="text-gray-500 text-sm">({house.reviewCount || 0})</span>
         </div>
       </div>
 
       <div className="p-5">
         <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">
-          {house.name}
+          {house.companyName}
         </h3>
 
         <div className="flex items-center gap-2 text-gray-600 mb-3">
@@ -50,7 +47,7 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
         </div>
 
         <div className="flex flex-wrap gap-2 mb-4">
-          {house.specialties.slice(0, 3).map((specialty, index) => (
+          {house.specialties?.slice(0, 3).map((specialty, index) => (
             <span 
               key={index}
               className="bg-cyan-50 text-cyan-700 px-3 py-1 rounded-full text-xs font-medium border border-cyan-200"
@@ -65,13 +62,13 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
             <DollarSign size={18} className="text-gray-500" />
             <span className="text-sm text-gray-500">Starting at</span>
             <span className="text-lg font-bold text-gray-900">
-              ৳{house.startingPrice.toLocaleString()}
+              ৳{house.startingPrice?.toLocaleString()}
             </span>
           </div>
         </div>
 
         <button 
-          onClick={() => onViewDetails(house.id)}
+          onClick={() => onViewDetails(house.slug || house._id)}
           className="w-full mt-4 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-3 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
         >
           View Details
@@ -84,55 +81,81 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
 export default function ProductionHousesPage() {
   const router = useRouter();
   
-  // State for filters
+  // State
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
-    availability: 'all', // 'all', 'available', 'booked'
+    availability: 'all',
     priceRange: [0, 500000],
     location: 'all',
     specialty: 'all',
     minRating: 0
   });
 
+  // Fetch services from API
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      setLoading(true);
+      
+      // Build query string
+      const queryParams = new URLSearchParams({
+        serviceCategory: 'Production Houses',
+        ...(filters.availability !== 'all' && { availability: filters.availability }),
+        ...(filters.location !== 'all' && { location: filters.location }),
+        ...(filters.minRating > 0 && { minRating: filters.minRating }),
+        ...(searchQuery && { search: searchQuery }),
+        minPrice: filters.priceRange[0],
+        maxPrice: filters.priceRange[1],
+      });
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API}/services/allservices?${queryParams}`
+      );
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setServices(data.data);
+      } else {
+        console.error('Failed to fetch services:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching services:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Refetch when filters change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchServices();
+    }, 500); // Debounce
+
+    return () => clearTimeout(timer);
+  }, [filters, searchQuery]);
+
   // Get unique locations and specialties
-  const locations = ['all', ...new Set(productionHousesData.map(h => h.location))];
-  const allSpecialties = ['all', ...new Set(productionHousesData.flatMap(h => h.specialties))];
+  const locations = ['all', ...new Set(services.map(h => h.location).filter(Boolean))];
+  const allSpecialties = ['all', ...new Set(services.flatMap(h => h.specialties || []))];
 
-  // Filter logic
+  // Filter logic (client-side filtering for specialty)
   const filteredHouses = useMemo(() => {
-    return productionHousesData.filter(house => {
-      // Search filter
-      const matchesSearch = house.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           house.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           house.specialties.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
-      
-      // Availability filter
-      const matchesAvailability = filters.availability === 'all' || 
-                                 (filters.availability === 'available' && house.available) ||
-                                 (filters.availability === 'booked' && !house.available);
-      
-      // Price range filter
-      const matchesPrice = house.startingPrice >= filters.priceRange[0] && 
-                          house.startingPrice <= filters.priceRange[1];
-      
-      // Location filter
-      const matchesLocation = filters.location === 'all' || house.location === filters.location;
-      
-      // Specialty filter
+    return services.filter(house => {
       const matchesSpecialty = filters.specialty === 'all' || 
-                              house.specialties.includes(filters.specialty);
-      
-      // Rating filter
-      const matchesRating = house.rating >= filters.minRating;
-
-      return matchesSearch && matchesAvailability && matchesPrice && 
-             matchesLocation && matchesSpecialty && matchesRating;
+                              house.specialties?.includes(filters.specialty);
+      return matchesSpecialty;
     });
-  }, [searchQuery, filters]);
+  }, [services, filters.specialty]);
 
-  const handleViewDetails = (id) => {
-    router.push(`/production-houses/${id}`);
+  const handleViewDetails = (identifier) => {
+    router.push(`/production-houses/${identifier}`);
   };
 
   const resetFilters = () => {
@@ -155,6 +178,17 @@ export default function ProductionHousesPage() {
     if (filters.minRating > 0) count++;
     return count;
   };
+
+  if (loading && services.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-cyan-50">
+        <div className="text-center">
+          <Loader2 className="w-16 h-16 animate-spin text-cyan-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading production houses...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-cyan-50">
@@ -305,10 +339,6 @@ export default function ProductionHousesPage() {
                     className="flex-1"
                   />
                 </div>
-                <div className="flex justify-between mt-2 text-xs text-gray-500">
-                  <span>৳0</span>
-                  <span>৳500,000</span>
-                </div>
               </div>
 
               {/* Minimum Rating Filter */}
@@ -339,21 +369,19 @@ export default function ProductionHousesPage() {
                 {filteredHouses.length}
               </div>
               <div className="text-gray-600 text-sm">
-                {filteredHouses.length === productionHousesData.length 
-                  ? 'Total Production Houses' 
-                  : 'Matching Results'}
+                Matching Results
               </div>
             </div>
             <div>
               <div className="text-3xl font-bold text-green-600 mb-1">
-                {filteredHouses.filter(h => h.available).length}
+                {filteredHouses.filter(h => h.available || h.availability === 'Available').length}
               </div>
               <div className="text-gray-600 text-sm">Available Now</div>
             </div>
             <div>
               <div className="text-3xl font-bold text-yellow-600 mb-1">
                 {filteredHouses.length > 0 
-                  ? (filteredHouses.reduce((sum, h) => sum + h.rating, 0) / filteredHouses.length).toFixed(1)
+                  ? (filteredHouses.reduce((sum, h) => sum + (h.rating || 0), 0) / filteredHouses.length).toFixed(1)
                   : '0.0'}
               </div>
               <div className="text-gray-600 text-sm">Average Rating</div>
@@ -361,22 +389,12 @@ export default function ProductionHousesPage() {
           </div>
         </div>
 
-        {/* Results Info */}
-        {(searchQuery || activeFiltersCount() > 0) && (
-          <div className="mb-6 flex items-center justify-between bg-cyan-50 border border-cyan-200 rounded-lg p-4">
-            <p className="text-cyan-800">
-              <span className="font-semibold">{filteredHouses.length}</span> production house{filteredHouses.length !== 1 ? 's' : ''} found
-              {searchQuery && <span> matching "<span className="font-semibold">{searchQuery}</span>"</span>}
-            </p>
-          </div>
-        )}
-
         {/* Production Houses Grid */}
         {filteredHouses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredHouses.map((house) => (
               <ProductionHouseCard 
-                key={house.id} 
+                key={house._id} 
                 house={house}
                 onViewDetails={handleViewDetails}
               />

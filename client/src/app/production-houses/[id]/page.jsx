@@ -1,15 +1,12 @@
-// File: src/app/production-houses/[id]/page.jsx
-
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   MapPin, Star, CheckCircle, XCircle, Phone, Mail, Clock, 
   Award, Shield, Users, ChevronLeft, ChevronRight, ArrowLeft,
-  Camera, Video, Mic, Lightbulb
+  Camera, Video, Mic, Lightbulb, Music, Edit, Loader2, Speaker
 } from 'lucide-react';
-import { productionHousesData } from '../data';
 
 // Image Slider Component
 const ImageSlider = ({ images }) => {
@@ -26,39 +23,43 @@ const ImageSlider = ({ images }) => {
   return (
     <div className="relative h-[500px] w-full overflow-hidden rounded-2xl">
       <img 
-        src={images[currentIndex]} 
+        src={images[currentIndex] || '/placeholder.jpg'} 
         alt={`Slide ${currentIndex + 1}`}
         className="w-full h-full object-cover"
       />
 
-      <button 
-        onClick={prevSlide}
-        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-3 rounded-full shadow-lg transition-all"
-      >
-        <ChevronLeft size={24} />
-      </button>
-      <button 
-        onClick={nextSlide}
-        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-3 rounded-full shadow-lg transition-all"
-      >
-        <ChevronRight size={24} />
-      </button>
+      {images.length > 1 && (
+        <>
+          <button 
+            onClick={prevSlide}
+            className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-3 rounded-full shadow-lg transition-all"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <button 
+            onClick={nextSlide}
+            className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-3 rounded-full shadow-lg transition-all"
+          >
+            <ChevronRight size={24} />
+          </button>
 
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-        {images.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => setCurrentIndex(index)}
-            className={`h-2 rounded-full transition-all ${
-              index === currentIndex ? 'w-8 bg-white' : 'w-2 bg-white/60'
-            }`}
-          />
-        ))}
-      </div>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+            {images.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentIndex(index)}
+                className={`h-2 rounded-full transition-all ${
+                  index === currentIndex ? 'w-8 bg-white' : 'w-2 bg-white/60'
+                }`}
+              />
+            ))}
+          </div>
 
-      <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm">
-        {currentIndex + 1} / {images.length}
-      </div>
+          <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm">
+            {currentIndex + 1} / {images.length}
+          </div>
+        </>
+      )}
     </div>
   );
 };
@@ -78,13 +79,13 @@ const PackageCard = ({ pkg }) => {
       <div className="text-center mb-6">
         <h3 className="text-2xl font-bold text-gray-900 mb-2">{pkg.name}</h3>
         <div className="flex items-baseline justify-center gap-1">
-          <span className="text-4xl font-bold text-cyan-600">৳{pkg.price.toLocaleString()}</span>
+          <span className="text-4xl font-bold text-cyan-600">৳{pkg.price?.toLocaleString()}</span>
         </div>
         <p className="text-gray-600 mt-1">{pkg.duration}</p>
       </div>
 
       <ul className="space-y-3 mb-6">
-        {pkg.features.map((feature, index) => (
+        {pkg.features?.map((feature, index) => (
           <li key={index} className="flex items-start gap-2">
             <CheckCircle size={20} className="text-green-500 flex-shrink-0 mt-0.5" />
             <span className="text-gray-700">{feature}</span>
@@ -109,7 +110,7 @@ const ReviewCard = ({ review }) => {
     <div className="bg-white rounded-xl p-6 shadow-md">
       <div className="flex items-start gap-4 mb-4">
         <img 
-          src={review.avatar} 
+          src={review.avatar || '/default-avatar.png'} 
           alt={review.name}
           className="w-12 h-12 rounded-full"
         />
@@ -133,7 +134,7 @@ const ReviewCard = ({ review }) => {
 };
 
 // Booking Form Component
-const BookingForm = () => {
+const BookingForm = ({ serviceId }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -142,6 +143,7 @@ const BookingForm = () => {
     package: '',
     message: ''
   });
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -150,9 +152,44 @@ const BookingForm = () => {
     });
   };
 
-  const handleSubmit = () => {
-    console.log('Booking request:', formData);
-    alert('Booking request submitted! আমরা 24 ঘন্টার মধ্যে আপনার সাথে যোগাযোগ করব।');
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.email || !formData.phone || !formData.date) {
+      alert('Please fill all required fields');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/services/${serviceId}/book`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('✅ Booking request submitted! আমরা 24 ঘন্টার মধ্যে আপনার সাথে যোগাযোগ করব।');
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          date: '',
+          package: '',
+          message: ''
+        });
+      } else {
+        alert('❌ ' + data.message);
+      }
+    } catch (error) {
+      console.error('Booking error:', error);
+      alert('❌ Failed to submit booking. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -209,9 +246,17 @@ const BookingForm = () => {
       />
       <button 
         onClick={handleSubmit}
-        className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-lg transition-all shadow-md hover:shadow-lg"
+        disabled={loading}
+        className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
       >
-        Request Booking
+        {loading ? (
+          <>
+            <Loader2 className="w-5 h-5 animate-spin" />
+            Submitting...
+          </>
+        ) : (
+          'Request Booking'
+        )}
       </button>
     </div>
   );
@@ -221,9 +266,60 @@ const BookingForm = () => {
 export default function ProductionHouseDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const houseId = parseInt(params.id);
+  const [house, setHouse] = useState(null);
+  const [loading, setLoading] = useState(true);
   
-  const house = productionHousesData.find(h => h.id === houseId);
+  const identifier = params.id;
+
+  useEffect(() => {
+    fetchServiceDetails();
+  }, [identifier]);
+
+  const fetchServiceDetails = async () => {
+    try {
+      setLoading(true);
+      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API}/services/${identifier}`
+      );
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setHouse(data.data);
+      } else {
+        console.error('Failed to fetch service:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching service details:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Icon mapping - Fixed: Sound replaced with Speaker
+  const iconMap = {
+    Camera: Camera,
+    Video: Video,
+    Mic: Mic,
+    Lightbulb: Lightbulb,
+    Music: Music,
+    Edit: Edit,
+    Sound: Speaker,  // ✅ Fixed: Use Speaker instead of Sound
+    Light: Lightbulb,
+    Speaker: Speaker
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-16 h-16 animate-spin text-cyan-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading details...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!house) {
     return (
@@ -241,13 +337,6 @@ export default function ProductionHouseDetailsPage() {
     );
   }
 
-  const iconMap = {
-    Camera: Camera,
-    Video: Video,
-    Mic: Mic,
-    Lightbulb: Lightbulb
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white">
@@ -259,7 +348,7 @@ export default function ProductionHouseDetailsPage() {
             <ArrowLeft size={20} />
             Back to Listings
           </button>
-          <ImageSlider images={house.images} />
+          <ImageSlider images={house.images?.length > 0 ? house.images : house.image || ['/placeholder.jpg']} />
         </div>
       </div>
 
@@ -270,10 +359,12 @@ export default function ProductionHouseDetailsPage() {
             <div className="bg-white rounded-xl p-6 shadow-md">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">{house.name}</h1>
-                  <p className="text-gray-600 italic">{house.tagline}</p>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">{house.companyName}</h1>
+                  {house.tagline && (
+                    <p className="text-gray-600 italic">{house.tagline}</p>
+                  )}
                 </div>
-                {house.available ? (
+                {house.available || house.availability === 'Available' ? (
                   <span className="flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full font-semibold">
                     <CheckCircle size={20} />
                     Available
@@ -289,12 +380,12 @@ export default function ProductionHouseDetailsPage() {
               <div className="flex flex-wrap items-center gap-4 text-gray-600">
                 <div className="flex items-center gap-2">
                   <Star size={20} className="fill-yellow-400 text-yellow-400" />
-                  <span className="font-semibold text-gray-900">{house.rating}</span>
-                  <span>({house.reviewCount} reviews)</span>
+                  <span className="font-semibold text-gray-900">{house.rating || 0}</span>
+                  <span>({house.reviewCount || 0} reviews)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin size={20} className="text-cyan-600" />
-                  <span>{house.fullAddress}</span>
+                  <span>{house.fullAddress || house.location}</span>
                 </div>
               </div>
             </div>
@@ -302,78 +393,90 @@ export default function ProductionHouseDetailsPage() {
             {/* About Section */}
             <div className="bg-white rounded-xl p-6 shadow-md">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">About</h2>
-              <p className="text-gray-700 leading-relaxed mb-6">{house.about}</p>
+              <p className="text-gray-700 leading-relaxed mb-6">{house.aboutYourCompany}</p>
               
-              <h3 className="font-semibold text-gray-900 mb-3">Key Features</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {house.features.map((feature, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <CheckCircle size={18} className="text-cyan-600 flex-shrink-0" />
-                    <span className="text-gray-700">{feature}</span>
+              {house.features && house.features.length > 0 && (
+                <>
+                  <h3 className="font-semibold text-gray-900 mb-3">Key Features</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {house.features.map((feature, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <CheckCircle size={18} className="text-cyan-600 flex-shrink-0" />
+                        <span className="text-gray-700">{feature}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </div>
 
             {/* Services Section */}
-            <div className="bg-white rounded-xl p-6 shadow-md">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Services Offered</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {house.services.map((service, index) => {
-                  const Icon = iconMap[service.icon];
-                  return (
-                    <div key={index} className="flex gap-4">
-                      <div className="bg-cyan-100 p-3 rounded-lg h-fit">
-                        <Icon size={24} className="text-cyan-600" />
+            {house.services && house.services.length > 0 && (
+              <div className="bg-white rounded-xl p-6 shadow-md">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Services Offered</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {house.services.map((service, index) => {
+                    const Icon = iconMap[service.icon] || Camera;
+                    return (
+                      <div key={index} className="flex gap-4">
+                        <div className="bg-cyan-100 p-3 rounded-lg h-fit">
+                          <Icon size={24} className="text-cyan-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 mb-1">{service.title}</h3>
+                          <p className="text-gray-600 text-sm">{service.description}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900 mb-1">{service.title}</h3>
-                        <p className="text-gray-600 text-sm">{service.description}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Pricing Packages */}
-            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-6 shadow-md">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Pricing Packages</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {house.packages.map((pkg, index) => (
-                  <PackageCard key={index} pkg={pkg} />
-                ))}
+            {house.packages && house.packages.length > 0 && (
+              <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-6 shadow-md">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Pricing Packages</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {house.packages.map((pkg, index) => (
+                    <PackageCard key={index} pkg={pkg} />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Portfolio Gallery */}
-            <div className="bg-white rounded-xl p-6 shadow-md">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Portfolio</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {house.portfolio.map((item) => (
-                  <div key={item.id} className="relative group overflow-hidden rounded-lg aspect-square">
-                    <img 
-                      src={item.image} 
-                      alt={item.title}
-                      className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <p className="text-white font-semibold">{item.title}</p>
+            {house.portfolio && house.portfolio.length > 0 && (
+              <div className="bg-white rounded-xl p-6 shadow-md">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Portfolio</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {house.portfolio.map((item) => (
+                    <div key={item.id} className="relative group overflow-hidden rounded-lg aspect-square">
+                      <img 
+                        src={item.image} 
+                        alt={item.title}
+                        className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <p className="text-white font-semibold">{item.title}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Reviews Section */}
-            <div className="bg-white rounded-xl p-6 shadow-md">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Client Reviews</h2>
-              <div className="space-y-4">
-                {house.reviews.map((review) => (
-                  <ReviewCard key={review.id} review={review} />
-                ))}
+            {house.reviews && house.reviews.length > 0 && (
+              <div className="bg-white rounded-xl p-6 shadow-md">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Client Reviews</h2>
+                <div className="space-y-4">
+                  {house.reviews.map((review) => (
+                    <ReviewCard key={review.id || review._id} review={review} />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Right Column - Booking Sidebar */}
@@ -382,20 +485,28 @@ export default function ProductionHouseDetailsPage() {
               <h3 className="text-xl font-bold text-gray-900 mb-6">Book This Studio</h3>
               
               {/* Contact Info */}
-              <div className="space-y-4 mb-6">
-                <div className="flex items-center gap-3 text-gray-700">
-                  <Phone size={20} className="text-cyan-600" />
-                  <span>{house.contact.phone}</span>
+              {house.contact && (
+                <div className="space-y-4 mb-6">
+                  {house.contact.phone && (
+                    <div className="flex items-center gap-3 text-gray-700">
+                      <Phone size={20} className="text-cyan-600" />
+                      <span>{house.contact.phone}</span>
+                    </div>
+                  )}
+                  {house.contact.email && (
+                    <div className="flex items-center gap-3 text-gray-700">
+                      <Mail size={20} className="text-cyan-600" />
+                      <span className="text-sm">{house.contact.email}</span>
+                    </div>
+                  )}
+                  {house.contact.hours && (
+                    <div className="flex items-center gap-3 text-gray-700">
+                      <Clock size={20} className="text-cyan-600" />
+                      <span className="text-sm">{house.contact.hours}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-3 text-gray-700">
-                  <Mail size={20} className="text-cyan-600" />
-                  <span className="text-sm">{house.contact.email}</span>
-                </div>
-                <div className="flex items-center gap-3 text-gray-700">
-                  <Clock size={20} className="text-cyan-600" />
-                  <span className="text-sm">{house.contact.hours}</span>
-                </div>
-              </div>
+              )}
 
               {/* Quick Stats */}
               <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-3">
@@ -405,7 +516,9 @@ export default function ProductionHouseDetailsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="text-cyan-600" size={20} />
-                  <span className="text-sm text-gray-700">500+ Happy Clients</span>
+                  <span className="text-sm text-gray-700">
+                    {house.totalBookings || 500}+ Happy Clients
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Shield className="text-cyan-600" size={20} />
@@ -414,7 +527,7 @@ export default function ProductionHouseDetailsPage() {
               </div>
 
               {/* Booking Form */}
-              <BookingForm />
+              <BookingForm serviceId={house._id} />
 
               <p className="text-xs text-gray-500 text-center mt-4">
                 আমরা 24 ঘন্টার মধ্যে সাড়া দেব

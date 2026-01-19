@@ -57,7 +57,7 @@ const Login = () => {
         alert('✅ Login successful! Welcome back.');
         
         // Redirect to dashboard
-        router.push('/dashboard');
+        router.push('/vendor/dashboard');
       } else {
         // Show specific error messages
         if (data.message.includes('verify')) {
