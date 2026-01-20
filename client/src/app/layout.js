@@ -30,6 +30,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body
         className={` ${sirin_stencil.variable} ${rubikMaps.variable} ${outfit.variable} antialiased`}
+         suppressHydrationWarning 
       >
         {children}
       </body>
