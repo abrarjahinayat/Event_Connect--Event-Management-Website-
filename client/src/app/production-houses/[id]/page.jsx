@@ -5,10 +5,11 @@ import { useParams, useRouter } from 'next/navigation';
 import { 
   MapPin, Star, CheckCircle, XCircle, Phone, Mail, Clock, 
   Award, Shield, Users, ChevronLeft, ChevronRight, ArrowLeft,
-  Camera, Video, Mic, Lightbulb, Music, Edit, Loader2, Speaker
+  Camera, Video, Mic, Lightbulb, Music, Edit, Loader2, Speaker,
+  Lock, Info, Calendar, DollarSign
 } from 'lucide-react';
 
-// Image Slider Component
+// Image Slider Component (unchanged)
 const ImageSlider = ({ images }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -64,12 +65,12 @@ const ImageSlider = ({ images }) => {
   );
 };
 
-// Package Card Component
-const PackageCard = ({ pkg }) => {
+// Package Card Component - Updated with "Ask for Booking"
+const PackageCard = ({ pkg, onSelect, isSelected }) => {
   return (
     <div className={`relative bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${
       pkg.popular ? 'ring-2 ring-cyan-500 scale-105' : ''
-    }`}>
+    } ${isSelected ? 'ring-2 ring-green-500' : ''}`}>
       {pkg.popular && (
         <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-cyan-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
           Most Popular
@@ -82,6 +83,13 @@ const PackageCard = ({ pkg }) => {
           <span className="text-4xl font-bold text-cyan-600">৳{pkg.price?.toLocaleString()}</span>
         </div>
         <p className="text-gray-600 mt-1">{pkg.duration}</p>
+        
+        {/* Show 10% advance amount */}
+        <div className="mt-2 bg-green-50 px-3 py-1 rounded-full inline-block">
+          <p className="text-sm text-green-700 font-semibold">
+            Advance: ৳{Math.round(pkg.price * 0.1).toLocaleString()} (10%)
+          </p>
+        </div>
       </div>
 
       <ul className="space-y-3 mb-6">
@@ -93,18 +101,23 @@ const PackageCard = ({ pkg }) => {
         ))}
       </ul>
 
-      <button className={`w-full py-3 rounded-lg font-semibold transition-all ${
-        pkg.popular 
-          ? 'bg-cyan-600 hover:bg-cyan-700 text-white' 
-          : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
-      }`}>
-        Book Now
+      <button 
+        onClick={() => onSelect(pkg)}
+        className={`w-full py-3 rounded-lg font-semibold transition-all ${
+          isSelected
+            ? 'bg-green-600 text-white'
+            : pkg.popular 
+              ? 'bg-cyan-600 hover:bg-cyan-700 text-white' 
+              : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+        }`}
+      >
+        {isSelected ? '✓ Selected' : 'Select Package'}
       </button>
     </div>
   );
 };
 
-// Review Card Component
+// Review Card Component (unchanged)
 const ReviewCard = ({ review }) => {
   return (
     <div className="bg-white rounded-xl p-6 shadow-md">
@@ -133,17 +146,36 @@ const ReviewCard = ({ review }) => {
   );
 };
 
-// Booking Form Component
-const BookingForm = ({ serviceId }) => {
+// NEW: Ask for Booking Form Component
+const AskForBookingForm = ({ service, selectedPackage, onSuccess }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    date: '',
-    package: '',
-    message: ''
+    customerName: '',
+    customerEmail: '',
+    customerPhone: '',
+    eventDate: '',
+    eventAddress: '',
+    eventCity: '',
+    specialRequests: ''
   });
   const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    // Get logged in user data
+    const userData = localStorage.getItem('userData');
+    if (userData) {
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      
+      // Pre-fill form with user data
+      setFormData(prev => ({
+        ...prev,
+        customerName: parsedUser.name || '',
+        customerEmail: parsedUser.email || '',
+        customerPhone: parsedUser.phone || ''
+      }));
+    }
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -152,113 +184,207 @@ const BookingForm = ({ serviceId }) => {
     });
   };
 
-  const handleSubmit = async () => {
-    if (!formData.name || !formData.email || !formData.phone || !formData.date) {
-      alert('Please fill all required fields');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!user) {
+      alert('❌ Please login to submit booking request');
+      window.location.href = '/user/login';
+      return;
+    }
+
+    if (!selectedPackage) {
+      alert('❌ Please select a package first');
+      return;
+    }
+
+    // Validation
+    if (!formData.customerName || !formData.customerEmail || !formData.customerPhone || 
+        !formData.eventDate || !formData.eventAddress || !formData.eventCity) {
+      alert('❌ Please fill all required fields');
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/services/${serviceId}/book`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/booking/ask-for-booking`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          serviceId: service._id,
+          userId: user._id || user.id,
+          customerName: formData.customerName,
+          customerEmail: formData.customerEmail,
+          customerPhone: formData.customerPhone,
+          eventDate: formData.eventDate,
+          eventAddress: formData.eventAddress,
+          eventCity: formData.eventCity,
+          selectedPackage: {
+            name: selectedPackage.name,
+            price: selectedPackage.price,
+            features: selectedPackage.features
+          },
+          specialRequests: formData.specialRequests
+        })
       });
 
       const data = await response.json();
 
       if (data.success) {
-        alert('✅ Booking request submitted! আমরা 24 ঘন্টার মধ্যে আপনার সাথে যোগাযোগ করব।');
+        alert('✅ ' + data.message);
+        
+        if (onSuccess) {
+          onSuccess(data.data);
+        }
+        
+        // Reset form
         setFormData({
-          name: '',
-          email: '',
-          phone: '',
-          date: '',
-          package: '',
-          message: ''
+          ...formData,
+          eventDate: '',
+          eventAddress: '',
+          eventCity: '',
+          specialRequests: ''
         });
       } else {
         alert('❌ ' + data.message);
       }
     } catch (error) {
-      console.error('Booking error:', error);
-      alert('❌ Failed to submit booking. Please try again.');
+      console.error('Booking request error:', error);
+      alert('❌ Failed to submit booking request. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Selected Package Display */}
+      {selectedPackage && (
+        <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4 mb-4">
+          <p className="font-semibold text-cyan-900 mb-2">Selected Package:</p>
+          <p className="text-lg font-bold text-cyan-700">{selectedPackage.name}</p>
+          <div className="flex justify-between items-center mt-2">
+            <span className="text-sm text-gray-600">Total Price:</span>
+            <span className="text-xl font-bold text-gray-900">৳{selectedPackage.price.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between items-center mt-1">
+            <span className="text-sm text-green-600">Advance Payment (10%):</span>
+            <span className="text-lg font-bold text-green-700">
+              ৳{Math.round(selectedPackage.price * 0.1).toLocaleString()}
+            </span>
+          </div>
+        </div>
+      )}
+
       <input 
         type="text" 
-        name="name"
-        value={formData.name}
+        name="customerName"
+        value={formData.customerName}
         onChange={handleChange}
-        placeholder="Your Name"
+        placeholder="Your Full Name *"
+        required
         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
       />
+      
       <input 
         type="email" 
-        name="email"
-        value={formData.email}
+        name="customerEmail"
+        value={formData.customerEmail}
         onChange={handleChange}
-        placeholder="Email Address"
+        placeholder="Email Address *"
+        required
         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
       />
+      
       <input 
         type="tel" 
-        name="phone"
-        value={formData.phone}
+        name="customerPhone"
+        value={formData.customerPhone}
         onChange={handleChange}
-        placeholder="Phone Number (01XXXXXXXXX)"
+        placeholder="Phone Number (01XXXXXXXXX) *"
+        required
         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
       />
+      
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Event Date *</label>
+        <input 
+          type="date" 
+          name="eventDate"
+          value={formData.eventDate}
+          onChange={handleChange}
+          min={new Date().toISOString().split('T')[0]}
+          required
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+        />
+      </div>
+
       <input 
-        type="date" 
-        name="date"
-        value={formData.date}
+        type="text" 
+        name="eventAddress"
+        value={formData.eventAddress}
         onChange={handleChange}
+        placeholder="Event Address/Venue *"
+        required
         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
       />
-      <select 
-        name="package"
-        value={formData.package}
+
+      <input 
+        type="text" 
+        name="eventCity"
+        value={formData.eventCity}
         onChange={handleChange}
+        placeholder="City *"
+        required
         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-      >
-        <option value="">Select Package</option>
-        <option value="basic">Basic Package</option>
-        <option value="professional">Professional Package</option>
-        <option value="premium">Premium Package</option>
-      </select>
+      />
+      
       <textarea 
-        name="message"
-        value={formData.message}
+        name="specialRequests"
+        value={formData.specialRequests}
         onChange={handleChange}
-        placeholder="Tell us about your project..."
+        placeholder="Special Requests or Additional Information (Optional)"
         rows={4}
         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none"
       />
+
       <button 
-        onClick={handleSubmit}
-        disabled={loading}
-        className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+        type="submit"
+        disabled={loading || !selectedPackage}
+        className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {loading ? (
           <>
             <Loader2 className="w-5 h-5 animate-spin" />
-            Submitting...
+            Submitting Request...
           </>
         ) : (
-          'Request Booking'
+          <>
+            <Calendar className="w-5 h-5" />
+            Ask for Booking
+          </>
         )}
       </button>
-    </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start gap-2">
+          <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-blue-800">
+            <p className="font-semibold mb-1">Booking Process:</p>
+            <ol className="list-decimal list-inside space-y-1 text-xs">
+              <li>Submit your booking request</li>
+              <li>Admin will review within 24 hours</li>
+              <li>You'll receive a payment link if approved</li>
+              <li>Pay 10% advance to confirm booking</li>
+              <li>Vendor contact details will be shared after payment</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </form>
   );
 };
 
@@ -268,6 +394,8 @@ export default function ProductionHouseDetailsPage() {
   const router = useRouter();
   const [house, setHouse] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedPackage, setSelectedPackage] = useState(null);
+  const [showBookingForm, setShowBookingForm] = useState(false);
   
   const identifier = params.id;
 
@@ -297,7 +425,27 @@ export default function ProductionHouseDetailsPage() {
     }
   };
 
-  // Icon mapping - Fixed: Sound replaced with Speaker
+  const handlePackageSelect = (pkg) => {
+    setSelectedPackage(pkg);
+    setShowBookingForm(true);
+    
+    // Scroll to booking form
+    setTimeout(() => {
+      document.getElementById('booking-section')?.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }, 100);
+  };
+
+  const handleBookingSuccess = (bookingData) => {
+    // Optionally redirect to bookings page
+    setTimeout(() => {
+      router.push('/user/booking');
+    }, 2000);
+  };
+
+  // Icon mapping
   const iconMap = {
     Camera: Camera,
     Video: Video,
@@ -305,7 +453,7 @@ export default function ProductionHouseDetailsPage() {
     Lightbulb: Lightbulb,
     Music: Music,
     Edit: Edit,
-    Sound: Speaker,  // ✅ Fixed: Use Speaker instead of Sound
+    Sound: Speaker,
     Light: Lightbulb,
     Speaker: Speaker
   };
@@ -325,7 +473,7 @@ export default function ProductionHouseDetailsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Production House Not Found</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Service Not Found</h1>
           <button
             onClick={() => router.push('/production-houses')}
             className="bg-cyan-600 text-white px-6 py-3 rounded-lg hover:bg-cyan-700"
@@ -339,6 +487,7 @@ export default function ProductionHouseDetailsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Header Section */}
       <div className="bg-white">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <button
@@ -354,8 +503,9 @@ export default function ProductionHouseDetailsPage() {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Service Details */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Header Section */}
+            {/* Header Info */}
             <div className="bg-white rounded-xl p-6 shadow-md">
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -436,31 +586,16 @@ export default function ProductionHouseDetailsPage() {
             {/* Pricing Packages */}
             {house.packages && house.packages.length > 0 && (
               <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-6 shadow-md">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Pricing Packages</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">Pricing Packages</h2>
+                <p className="text-center text-gray-600 mb-6">Select a package to proceed with booking</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {house.packages.map((pkg, index) => (
-                    <PackageCard key={index} pkg={pkg} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Portfolio Gallery */}
-            {house.portfolio && house.portfolio.length > 0 && (
-              <div className="bg-white rounded-xl p-6 shadow-md">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Portfolio</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {house.portfolio.map((item) => (
-                    <div key={item.id} className="relative group overflow-hidden rounded-lg aspect-square">
-                      <img 
-                        src={item.image} 
-                        alt={item.title}
-                        className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <p className="text-white font-semibold">{item.title}</p>
-                      </div>
-                    </div>
+                    <PackageCard 
+                      key={index} 
+                      pkg={pkg} 
+                      onSelect={handlePackageSelect}
+                      isSelected={selectedPackage?.name === pkg.name}
+                    />
                   ))}
                 </div>
               </div>
@@ -481,32 +616,25 @@ export default function ProductionHouseDetailsPage() {
 
           {/* Right Column - Booking Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl p-6 shadow-lg sticky top-8">
-              <h3 className="text-xl font-bold text-gray-900 mb-6">Book This Studio</h3>
+            <div id="booking-section" className="bg-white rounded-xl p-6 shadow-lg sticky top-8">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">
+                {showBookingForm && selectedPackage ? 'Complete Booking Request' : 'Book This Service'}
+              </h3>
               
-              {/* Contact Info */}
-              {house.contact && (
-                <div className="space-y-4 mb-6">
-                  {house.contact.phone && (
-                    <div className="flex items-center gap-3 text-gray-700">
-                      <Phone size={20} className="text-cyan-600" />
-                      <span>{house.contact.phone}</span>
-                    </div>
-                  )}
-                  {house.contact.email && (
-                    <div className="flex items-center gap-3 text-gray-700">
-                      <Mail size={20} className="text-cyan-600" />
-                      <span className="text-sm">{house.contact.email}</span>
-                    </div>
-                  )}
-                  {house.contact.hours && (
-                    <div className="flex items-center gap-3 text-gray-700">
-                      <Clock size={20} className="text-cyan-600" />
-                      <span className="text-sm">{house.contact.hours}</span>
-                    </div>
-                  )}
+              {/* Contact Info - HIDDEN Initially */}
+              <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-6 mb-6">
+                <div className="text-center">
+                  <Lock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="font-semibold text-gray-700 mb-2">Vendor Contact Hidden</p>
+                  <p className="text-sm text-gray-600">
+                    Contact details will be shared after:
+                  </p>
+                  <ul className="text-xs text-gray-500 mt-2 space-y-1">
+                    <li>✓ Admin approval</li>
+                    <li>✓ Payment confirmation</li>
+                  </ul>
                 </div>
-              )}
+              </div>
 
               {/* Quick Stats */}
               <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-3">
@@ -527,7 +655,21 @@ export default function ProductionHouseDetailsPage() {
               </div>
 
               {/* Booking Form */}
-              <BookingForm serviceId={house._id} />
+              {showBookingForm && selectedPackage ? (
+                <AskForBookingForm 
+                  service={house} 
+                  selectedPackage={selectedPackage}
+                  onSuccess={handleBookingSuccess}
+                />
+              ) : (
+                <div className="text-center py-8">
+                  <DollarSign className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">Select a package above to get started</p>
+                  <p className="text-sm text-gray-500">
+                    Only 10% advance payment required to confirm booking
+                  </p>
+                </div>
+              )}
 
               <p className="text-xs text-gray-500 text-center mt-4">
                 আমরা 24 ঘন্টার মধ্যে সাড়া দেব
