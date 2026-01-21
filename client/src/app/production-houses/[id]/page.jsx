@@ -6,10 +6,10 @@ import {
   MapPin, Star, CheckCircle, XCircle, Phone, Mail, Clock, 
   Award, Shield, Users, ChevronLeft, ChevronRight, ArrowLeft,
   Camera, Video, Mic, Lightbulb, Music, Edit, Loader2, Speaker,
-  Lock, Info, Calendar, DollarSign
+  Lock, Info, Calendar, DollarSign, X
 } from 'lucide-react';
 
-// Image Slider Component (unchanged)
+// Image Slider Component
 const ImageSlider = ({ images }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -65,7 +65,96 @@ const ImageSlider = ({ images }) => {
   );
 };
 
-// Package Card Component - Updated with "Ask for Booking"
+// 🎯 NEW: Portfolio Gallery Component
+const PortfolioGallery = ({ portfolio }) => {
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  if (!portfolio || portfolio.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="bg-white rounded-xl p-6 shadow-md">
+      <div className="flex items-center gap-2 mb-6">
+        <Camera className="text-purple-600" size={24} />
+        <h2 className="text-2xl font-bold text-gray-900">Portfolio / Past Work</h2>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {portfolio.map((item, index) => (
+          <div 
+            key={index} 
+            className="group cursor-pointer"
+            onClick={() => setSelectedImage(item)}
+          >
+            <div className="relative overflow-hidden rounded-lg aspect-video bg-gray-100">
+              {item.image ? (
+                <>
+                  <img 
+                    src={item.image} 
+                    alt={item.title}
+                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Camera className="text-white" size={32} />
+                  </div>
+                </>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Camera className="text-gray-400" size={48} />
+                </div>
+              )}
+              {item.category && (
+                <div className="absolute top-2 right-2 bg-purple-600 text-white px-2 py-1 rounded text-xs font-semibold">
+                  {item.category}
+                </div>
+              )}
+            </div>
+            <div className="mt-2">
+              <h3 className="font-semibold text-gray-900">{item.title}</h3>
+              <p className="text-sm text-gray-600 line-clamp-2">{item.description}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Image Modal */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <button
+            onClick={() => setSelectedImage(null)}
+            className="absolute top-4 right-4 text-white bg-black/50 p-2 rounded-full hover:bg-black/70"
+          >
+            <X size={24} />
+          </button>
+          <div className="max-w-4xl w-full">
+            {selectedImage.image && (
+              <img 
+                src={selectedImage.image} 
+                alt={selectedImage.title}
+                className="w-full rounded-lg"
+              />
+            )}
+            <div className="mt-4 text-white">
+              <h3 className="text-2xl font-bold">{selectedImage.title}</h3>
+              <p className="text-gray-300 mt-2">{selectedImage.description}</p>
+              {selectedImage.category && (
+                <span className="inline-block mt-2 bg-purple-600 px-3 py-1 rounded-full text-sm">
+                  {selectedImage.category}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Package Card Component
 const PackageCard = ({ pkg, onSelect, isSelected }) => {
   return (
     <div className={`relative bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${
@@ -84,7 +173,6 @@ const PackageCard = ({ pkg, onSelect, isSelected }) => {
         </div>
         <p className="text-gray-600 mt-1">{pkg.duration}</p>
         
-        {/* Show 10% advance amount */}
         <div className="mt-2 bg-green-50 px-3 py-1 rounded-full inline-block">
           <p className="text-sm text-green-700 font-semibold">
             Advance: ৳{Math.round(pkg.price * 0.1).toLocaleString()} (10%)
@@ -117,7 +205,7 @@ const PackageCard = ({ pkg, onSelect, isSelected }) => {
   );
 };
 
-// Review Card Component (unchanged)
+// Review Card Component
 const ReviewCard = ({ review }) => {
   return (
     <div className="bg-white rounded-xl p-6 shadow-md">
@@ -146,7 +234,7 @@ const ReviewCard = ({ review }) => {
   );
 };
 
-// NEW: Ask for Booking Form Component
+// Ask for Booking Form Component
 const AskForBookingForm = ({ service, selectedPackage, onSuccess }) => {
   const [formData, setFormData] = useState({
     customerName: '',
@@ -161,13 +249,11 @@ const AskForBookingForm = ({ service, selectedPackage, onSuccess }) => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Get logged in user data
     const userData = localStorage.getItem('userData');
     if (userData) {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
       
-      // Pre-fill form with user data
       setFormData(prev => ({
         ...prev,
         customerName: parsedUser.name || '',
@@ -198,7 +284,6 @@ const AskForBookingForm = ({ service, selectedPackage, onSuccess }) => {
       return;
     }
 
-    // Validation
     if (!formData.customerName || !formData.customerEmail || !formData.customerPhone || 
         !formData.eventDate || !formData.eventAddress || !formData.eventCity) {
       alert('❌ Please fill all required fields');
@@ -240,7 +325,6 @@ const AskForBookingForm = ({ service, selectedPackage, onSuccess }) => {
           onSuccess(data.data);
         }
         
-        // Reset form
         setFormData({
           ...formData,
           eventDate: '',
@@ -261,7 +345,6 @@ const AskForBookingForm = ({ service, selectedPackage, onSuccess }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Selected Package Display */}
       {selectedPackage && (
         <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4 mb-4">
           <p className="font-semibold text-cyan-900 mb-2">Selected Package:</p>
@@ -376,7 +459,7 @@ const AskForBookingForm = ({ service, selectedPackage, onSuccess }) => {
             <p className="font-semibold mb-1">Booking Process:</p>
             <ol className="list-decimal list-inside space-y-1 text-xs">
               <li>Submit your booking request</li>
-              <li>Admin will review within 24 hours</li>
+              <li>Admin will review within 1 hours</li>
               <li>You'll receive a payment link if approved</li>
               <li>Pay 10% advance to confirm booking</li>
               <li>Vendor contact details will be shared after payment</li>
@@ -414,6 +497,8 @@ export default function ProductionHouseDetailsPage() {
       const data = await response.json();
       
       if (data.success) {
+        console.log('📦 Service data:', data.data);
+        console.log('📸 Portfolio:', data.data.portfolio);
         setHouse(data.data);
       } else {
         console.error('Failed to fetch service:', data.message);
@@ -429,7 +514,6 @@ export default function ProductionHouseDetailsPage() {
     setSelectedPackage(pkg);
     setShowBookingForm(true);
     
-    // Scroll to booking form
     setTimeout(() => {
       document.getElementById('booking-section')?.scrollIntoView({ 
         behavior: 'smooth',
@@ -439,13 +523,11 @@ export default function ProductionHouseDetailsPage() {
   };
 
   const handleBookingSuccess = (bookingData) => {
-    // Optionally redirect to bookings page
     setTimeout(() => {
       router.push('/user/booking');
     }, 2000);
   };
 
-  // Icon mapping
   const iconMap = {
     Camera: Camera,
     Video: Video,
@@ -487,7 +569,6 @@ export default function ProductionHouseDetailsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header Section */}
       <div className="bg-white">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <button
@@ -503,7 +584,6 @@ export default function ProductionHouseDetailsPage() {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Service Details */}
           <div className="lg:col-span-2 space-y-8">
             {/* Header Info */}
             <div className="bg-white rounded-xl p-6 shadow-md">
@@ -583,6 +663,9 @@ export default function ProductionHouseDetailsPage() {
               </div>
             )}
 
+            {/* 🎯 Portfolio Gallery */}
+            <PortfolioGallery portfolio={house.portfolio} />
+
             {/* Pricing Packages */}
             {house.packages && house.packages.length > 0 && (
               <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-6 shadow-md">
@@ -621,7 +704,6 @@ export default function ProductionHouseDetailsPage() {
                 {showBookingForm && selectedPackage ? 'Complete Booking Request' : 'Book This Service'}
               </h3>
               
-              {/* Contact Info - HIDDEN Initially */}
               <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-6 mb-6">
                 <div className="text-center">
                   <Lock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
@@ -636,7 +718,6 @@ export default function ProductionHouseDetailsPage() {
                 </div>
               </div>
 
-              {/* Quick Stats */}
               <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-3">
                 <div className="flex items-center gap-2">
                   <Award className="text-cyan-600" size={20} />
@@ -654,7 +735,6 @@ export default function ProductionHouseDetailsPage() {
                 </div>
               </div>
 
-              {/* Booking Form */}
               {showBookingForm && selectedPackage ? (
                 <AskForBookingForm 
                   service={house} 
@@ -670,10 +750,6 @@ export default function ProductionHouseDetailsPage() {
                   </p>
                 </div>
               )}
-
-              <p className="text-xs text-gray-500 text-center mt-4">
-                আমরা 24 ঘন্টার মধ্যে সাড়া দেব
-              </p>
             </div>
           </div>
         </div>

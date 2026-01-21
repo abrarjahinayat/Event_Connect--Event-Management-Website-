@@ -54,7 +54,7 @@ export default function AddServicePage() {
   });
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
+    const userData = localStorage.getItem('vendorData');
     if (!userData) {
       router.push('/login');
       return;

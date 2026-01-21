@@ -12,19 +12,71 @@ const VendorDashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
+    checkAuth();
+  }, []);
 
-    if (!token || !userData) {
+  const checkAuth = () => {
+    console.log('🔍 Checking vendor authentication...');
+    
+    try {
+      const token = localStorage.getItem('vendorToken');
+      const userData = localStorage.getItem('vendorData');
+
+      console.log('🔑 Token:', token);
+      console.log('👤 User data raw:', userData);
+
+      // ✅ FIX 1: Check if token exists
+      if (!token) {
+        console.log('❌ No token found - redirecting to login');
+        router.push('/login');
+        return;
+      }
+
+      // ✅ FIX 2: Check if userData exists AND is not "undefined" string
+      if (!userData || userData === 'undefined' || userData === 'null') {
+        console.log('❌ No user data found - redirecting to login');
+        localStorage.removeItem('vendorToken');
+        localStorage.removeItem('vendorData');
+        router.push('/login');
+        return;
+      }
+
+      // ✅ FIX 3: Safe JSON parse with try-catch
+      let parsedUser;
+      try {
+        parsedUser = JSON.parse(userData);
+        console.log('✅ Parsed user:', parsedUser);
+      } catch (parseError) {
+        console.error('❌ JSON parse error:', parseError);
+        console.log('❌ Invalid user data - clearing and redirecting');
+        localStorage.removeItem('vendorToken');
+        localStorage.removeItem('vendorData');
+        router.push('/login');
+        return;
+      }
+
+      // ✅ FIX 4: Validate parsed user has required fields
+      if (!parsedUser || !parsedUser.buisnessName || !parsedUser.email) {
+        console.log('❌ Invalid user data structure - redirecting');
+        localStorage.removeItem('vendorToken');
+        localStorage.removeItem('vendorData');
+        router.push('/login');
+        return;
+      }
+
+      console.log('✅ Vendor authenticated:', parsedUser.buisnessName);
+      setUser(parsedUser);
+      setLoading(false);
+    } catch (error) {
+      console.error('❌ Auth check error:', error);
+      localStorage.removeItem('vendorToken');
+      localStorage.removeItem('vendorData');
       router.push('/login');
-      return;
     }
-
-    setUser(JSON.parse(userData));
-  }, [router]);
+  };
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/vendor/dashboard' },
@@ -37,8 +89,10 @@ const VendorDashboardLayout = ({ children }) => {
   ];
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    console.log('🚪 Logging out...');
+    localStorage.removeItem('vendorToken');
+    localStorage.removeItem('vendorData');
+    console.log('✅ Vendor logged out');
     router.push('/login');
   };
 
@@ -48,12 +102,19 @@ const VendorDashboardLayout = ({ children }) => {
     setSidebarOpen(false);
   };
 
-  if (!user) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading vendor dashboard...</p>
+        </div>
       </div>
     );
+  }
+
+  if (!user) {
+    return null;
   }
 
   return (
@@ -75,13 +136,11 @@ const VendorDashboardLayout = ({ children }) => {
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Logo/Brand */}
         <div className="p-6 border-b border-cyan-500">
           <h1 className="text-2xl font-bold">Event-Connect</h1>
           <p className="text-cyan-200 text-sm mt-1">Vendor Portal</p>
         </div>
 
-        {/* User Profile */}
         <div className="p-6 border-b border-cyan-500">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
@@ -94,7 +153,6 @@ const VendorDashboardLayout = ({ children }) => {
           </div>
         </div>
 
-        {/* Menu Items */}
         <nav className="p-4 flex-1 overflow-y-auto">
           <ul className="space-y-2">
             {menuItems.map((item) => {
@@ -120,7 +178,6 @@ const VendorDashboardLayout = ({ children }) => {
           </ul>
         </nav>
 
-        {/* Logout Button */}
         <div className="p-4 border-t border-cyan-500">
           <button
             onClick={handleLogout}
@@ -132,7 +189,6 @@ const VendorDashboardLayout = ({ children }) => {
         </div>
       </aside>
 
-      {/* Overlay for mobile */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -140,9 +196,7 @@ const VendorDashboardLayout = ({ children }) => {
         />
       )}
 
-      {/* Main Content */}
       <main className="lg:ml-64 pt-16 lg:pt-0">
-        {/* Top Bar */}
         <div className="bg-white shadow-sm px-6 py-4 hidden lg:flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 capitalize">
@@ -171,7 +225,6 @@ const VendorDashboardLayout = ({ children }) => {
           </div>
         </div>
 
-        {/* Page Content */}
         <div className="p-6">
           {children}
         </div>

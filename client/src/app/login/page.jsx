@@ -1,27 +1,36 @@
 "use client";
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Loader2, LogIn, Eye, EyeOff, AlertCircle, CheckCircle2, Mail, Lock } from 'lucide-react';
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Loader2,
+  LogIn,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  CheckCircle2,
+  Mail,
+  Lock,
+} from "lucide-react";
 
 const Login = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    email: '',
-    password: ''
+    email: "",
+    password: "",
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     // Clear error when user types
     if (error) {
-      setError('');
+      setError("");
     }
   };
 
@@ -30,45 +39,52 @@ const Login = () => {
 
     // Basic validation
     if (!formData.email || !formData.password) {
-      setError('Please enter both email and password');
+      setError("Please enter both email and password");
       return;
     }
 
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API}/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
         },
-        body: JSON.stringify(formData)
-      });
+      );
 
       const data = await response.json();
-      
+
       if (data.success) {
-        // Store token in localStorage
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.data));
-        
-        // Show success message
-        alert('✅ Login successful! Welcome back.');
-        
-        // Redirect to dashboard
-        router.push('/vendor/dashboard');
+        console.log("✅ Login successful!");
+
+        // Store with CORRECT keys
+        localStorage.setItem("vendorToken", data.token);
+        localStorage.setItem("vendorData", JSON.stringify(data.vendor));
+
+        console.log("💾 Saved to localStorage");
+        alert("✅ Login successful!");
+
+        // Redirect
+        router.push("/vendor/dashboard");
       } else {
         // Show specific error messages
-        if (data.message.includes('verify')) {
-          setError('Please verify your email first. Check your inbox for OTP.');
+        if (data.message.includes("verify")) {
+          setError("Please verify your email first. Check your inbox for OTP.");
         } else {
-          setError(data.message || 'Invalid email or password');
+          setError(data.message || "Invalid email or password");
         }
       }
     } catch (error) {
-      console.error('Login error:', error);
-      setError('Login failed. Please check your internet connection and try again.');
+      console.error("Login error:", error);
+      setError(
+        "Login failed. Please check your internet connection and try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -107,7 +123,10 @@ const Login = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Email Input */}
               <div>
-                <label htmlFor="email" className="block text-sm font-semibold text-gray-900 mb-2">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-semibold text-gray-900 mb-2"
+                >
                   Email Address
                 </label>
                 <div className="relative">
@@ -127,7 +146,10 @@ const Login = () => {
 
               {/* Password Input */}
               <div>
-                <label htmlFor="password" className="block text-sm font-semibold text-gray-900 mb-2">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-semibold text-gray-900 mb-2"
+                >
                   Password
                 </label>
                 <div className="relative">
@@ -206,7 +228,7 @@ const Login = () => {
             {/* Sign Up Link */}
             <div className="text-center">
               <p className="text-sm text-gray-600">
-                Don't have an account?{' '}
+                Don't have an account?{" "}
                 <a
                   href="/join-network"
                   className="text-cyan-600 hover:text-cyan-700 font-semibold"
@@ -225,7 +247,8 @@ const Login = () => {
                     First time logging in?
                   </p>
                   <p className="text-xs text-gray-600">
-                    Make sure you've verified your email with the OTP sent during registration.
+                    Make sure you've verified your email with the OTP sent
+                    during registration.
                   </p>
                 </div>
               </div>
@@ -236,26 +259,49 @@ const Login = () => {
         {/* Footer Links */}
         <div className="mt-6 text-center space-y-2">
           <p className="text-sm text-gray-600">
-            Having trouble?{' '}
-            <a href="/support" className="text-cyan-600 hover:text-cyan-700 font-semibold">
+            Having trouble?{" "}
+            <a
+              href="/support"
+              className="text-cyan-600 hover:text-cyan-700 font-semibold"
+            >
               Contact Support
             </a>
           </p>
           <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
-            <a href="/terms" className="hover:text-gray-700">Terms</a>
+            <a href="/terms" className="hover:text-gray-700">
+              Terms
+            </a>
             <span>•</span>
-            <a href="/privacy" className="hover:text-gray-700">Privacy</a>
+            <a href="/privacy" className="hover:text-gray-700">
+              Privacy
+            </a>
             <span>•</span>
-            <a href="/help" className="hover:text-gray-700">Help</a>
+            <a href="/help" className="hover:text-gray-700">
+              Help
+            </a>
           </div>
         </div>
       </div>
 
       <style jsx>{`
         @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-          20%, 40%, 60%, 80% { transform: translateX(5px); }
+          0%,
+          100% {
+            transform: translateX(0);
+          }
+          10%,
+          30%,
+          50%,
+          70%,
+          90% {
+            transform: translateX(-5px);
+          }
+          20%,
+          40%,
+          60%,
+          80% {
+            transform: translateX(5px);
+          }
         }
         .animate-shake {
           animation: shake 0.5s ease-in-out;
