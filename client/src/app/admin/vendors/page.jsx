@@ -1,30 +1,49 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Briefcase, Mail, Phone, MapPin, Calendar, Trash2, Eye, Search,
-  CheckCircle, XCircle, Clock, FileText, Star, Shield, Loader2,
-  AlertCircle, Download, Image as ImageIcon, X
-} from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  Briefcase,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  Trash2,
+  Eye,
+  Search,
+  CheckCircle,
+  XCircle,
+  Clock,
+  FileText,
+  Star,
+  Shield,
+  Loader2,
+  AlertCircle,
+  Download,
+  Image as ImageIcon,
+  X,
+} from "lucide-react";
 
 export default function AdminVendorsPage() {
   const [vendors, setVendors] = useState([]);
   const [filteredVendors, setFilteredVendors] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [verificationAction, setVerificationAction] = useState(null);
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [adminNotes, setAdminNotes] = useState('');
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [adminNotes, setAdminNotes] = useState("");
+  const [ratingModal, setRatingModal] = useState(false);
+  const [ratingValue, setRatingValue] = useState(0);
+  const [ratingComment, setRatingComment] = useState("");
   const [stats, setStats] = useState({
     totalVendors: 0,
     verified: 0,
     pending: 0,
     underReview: 0,
-    rejected: 0
+    rejected: 0,
   });
 
   useEffect(() => {
@@ -38,13 +57,16 @@ export default function AdminVendorsPage() {
   const fetchVendors = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem("adminToken");
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/admin/vendors`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API}/admin/vendors`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       const data = await response.json();
 
@@ -53,10 +75,10 @@ export default function AdminVendorsPage() {
         setFilteredVendors(data.data);
         setStats(data.stats);
       } else {
-        console.error('Failed to fetch vendors');
+        console.error("Failed to fetch vendors");
       }
     } catch (error) {
-      console.error('Error fetching vendors:', error);
+      console.error("Error fetching vendors:", error);
     } finally {
       setLoading(false);
     }
@@ -66,17 +88,20 @@ export default function AdminVendorsPage() {
     let filtered = [...vendors];
 
     // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(v => v.verificationStatus === statusFilter);
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((v) => v.verificationStatus === statusFilter);
     }
 
     // Search filter
     if (searchQuery) {
-      filtered = filtered.filter(vendor =>
-        vendor.buisnessName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vendor.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vendor.phone?.includes(searchQuery) ||
-        vendor.businessRegistrationNumber?.includes(searchQuery)
+      filtered = filtered.filter(
+        (vendor) =>
+          vendor.buisnessName
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          vendor.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          vendor.phone?.includes(searchQuery) ||
+          vendor.businessRegistrationNumber?.includes(searchQuery),
       );
     }
 
@@ -85,12 +110,15 @@ export default function AdminVendorsPage() {
 
   const viewVendorDetails = async (vendorId) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/admin/vendors/${vendorId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const token = localStorage.getItem("adminToken");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API}/admin/vendors/${vendorId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       const data = await response.json();
 
@@ -99,122 +127,175 @@ export default function AdminVendorsPage() {
         setShowDetails(true);
       }
     } catch (error) {
-      console.error('Error fetching vendor details:', error);
+      console.error("Error fetching vendor details:", error);
     }
   };
 
   const handleVerifyVendor = async (action) => {
     try {
-      if (action === 'reject' && !rejectionReason.trim()) {
-        alert('❌ Please provide a rejection reason');
+      if (action === "reject" && !rejectionReason.trim()) {
+        alert("❌ Please provide a rejection reason");
         return;
       }
 
-      const token = localStorage.getItem('adminToken');
-      const adminData = JSON.parse(localStorage.getItem('adminData'));
+      const token = localStorage.getItem("adminToken");
+      const adminData = JSON.parse(localStorage.getItem("adminData"));
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API}/admin/vendors/${selectedVendor.vendor._id}/verify`,
         {
-          method: 'PUT',
+          method: "PUT",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             action,
-            rejectionReason: action === 'reject' ? rejectionReason : undefined,
+            rejectionReason: action === "reject" ? rejectionReason : undefined,
             adminNotes,
-            adminId: adminData._id
-          })
-        }
+            adminId: adminData._id,
+          }),
+        },
       );
 
       const data = await response.json();
 
       if (data.success) {
-        alert(`✅ Vendor ${action === 'approve' ? 'verified' : 'rejected'} successfully`);
+        alert(
+          `✅ Vendor ${action === "approve" ? "verified" : "rejected"} successfully`,
+        );
         fetchVendors();
         setShowDetails(false);
         setVerificationAction(null);
-        setRejectionReason('');
-        setAdminNotes('');
+        setRejectionReason("");
+        setAdminNotes("");
       } else {
-        alert('❌ ' + data.message);
+        alert("❌ " + data.message);
       }
     } catch (error) {
-      console.error('Error verifying vendor:', error);
-      alert('❌ Failed to update vendor status');
+      console.error("Error verifying vendor:", error);
+      alert("❌ Failed to update vendor status");
     }
   };
 
   const handleDeleteVendor = async (vendorId) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API}/admin/vendors/${vendorId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        alert('✅ Vendor and associated services deleted successfully');
-        fetchVendors();
-        setDeleteConfirm(null);
-      } else {
-        alert('❌ ' + data.message);
-      }
-    } catch (error) {
-      console.error('Error deleting vendor:', error);
-      alert('❌ Failed to delete vendor');
-    }
-  };
-
-  const handleDeleteService = async (vendorId, serviceId) => {
-    if (!confirm('Are you sure you want to delete this service?')) return;
-
-    try {
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem("adminToken");
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API}/admin/vendors/${vendorId}/services/${serviceId}`,
+        `${process.env.NEXT_PUBLIC_API}/admin/vendors/${vendorId}`,
         {
-          method: 'DELETE',
+          method: "DELETE",
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       const data = await response.json();
 
       if (data.success) {
-        alert('✅ Service deleted successfully');
-        viewVendorDetails(vendorId); // Refresh vendor details
+        alert("✅ Vendor and associated services deleted successfully");
+        fetchVendors();
+        setDeleteConfirm(null);
       } else {
-        alert('❌ ' + data.message);
+        alert("❌ " + data.message);
       }
     } catch (error) {
-      console.error('Error deleting service:', error);
-      alert('❌ Failed to delete service');
+      console.error("Error deleting vendor:", error);
+      alert("❌ Failed to delete vendor");
+    }
+  };
+
+  const handleDeleteService = async (vendorId, serviceId) => {
+    if (!confirm("Are you sure you want to delete this service?")) return;
+
+    try {
+      const token = localStorage.getItem("adminToken");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API}/admin/vendors/${vendorId}/services/${serviceId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert("✅ Service deleted successfully");
+        viewVendorDetails(vendorId); // Refresh vendor details
+      } else {
+        alert("❌ " + data.message);
+      }
+    } catch (error) {
+      console.error("Error deleting service:", error);
+      alert("❌ Failed to delete service");
+    }
+  };
+
+  const handleRateVendor = async () => {
+    try {
+      if (ratingValue === 0) {
+        alert("❌ Please select a rating");
+        return;
+      }
+
+      const token = localStorage.getItem("adminToken");
+      const adminData = JSON.parse(localStorage.getItem("adminData"));
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API}/admin/vendors/${selectedVendor.vendor._id}/rate`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            rating: ratingValue,
+            ratingComment: ratingComment,
+            adminId: adminData._id,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(`✅ Vendor rated ${ratingValue}/5 successfully`);
+        fetchVendors();
+        setRatingModal(false);
+        setRatingValue(0);
+        setRatingComment("");
+        if (showDetails) {
+          viewVendorDetails(selectedVendor.vendor._id);
+        }
+      } else {
+        alert("❌ " + data.message);
+      }
+    } catch (error) {
+      console.error("Error rating vendor:", error);
+      alert("❌ Failed to rate vendor");
     }
   };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      Verified: { color: 'bg-green-100 text-green-700', icon: CheckCircle },
-      Pending: { color: 'bg-yellow-100 text-yellow-700', icon: Clock },
-      'Under Review': { color: 'bg-blue-100 text-blue-700', icon: Clock },
-      Rejected: { color: 'bg-red-100 text-red-700', icon: XCircle }
+      Verified: { color: "bg-green-100 text-green-700", icon: CheckCircle },
+      Pending: { color: "bg-yellow-100 text-yellow-700", icon: Clock },
+      "Under Review": { color: "bg-blue-100 text-blue-700", icon: Clock },
+      Rejected: { color: "bg-red-100 text-red-700", icon: XCircle },
     };
 
     const config = statusConfig[status] || statusConfig.Pending;
     const Icon = config.icon;
 
     return (
-      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${config.color}`}>
+      <span
+        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${config.color}`}
+      >
         <Icon size={16} />
         {status}
       </span>
@@ -222,10 +303,10 @@ export default function AdminVendorsPage() {
   };
 
   const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return new Date(date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -290,7 +371,10 @@ export default function AdminVendorsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              size={20}
+            />
             <input
               type="text"
               placeholder="Search by name, email, phone, or registration number..."
@@ -321,26 +405,45 @@ export default function AdminVendorsPage() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Business</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Contact</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Services</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Joined</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Actions</th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                  Business
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                  Contact
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                  Services
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                  Status
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                  Joined
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredVendors.length > 0 ? (
                 filteredVendors.map((vendor) => (
-                  <tr key={vendor._id} className="hover:bg-gray-50 transition-colors">
+                  <tr
+                    key={vendor._id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-cyan-100 flex items-center justify-center">
                           <Briefcase size={20} className="text-cyan-600" />
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900">{vendor.buisnessName}</p>
-                          <p className="text-xs text-gray-500">{vendor.service}</p>
+                          <p className="font-semibold text-gray-900">
+                            {vendor.buisnessName}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {vendor.service}
+                          </p>
                         </div>
                       </div>
                     </td>
@@ -349,7 +452,9 @@ export default function AdminVendorsPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Mail size={14} />
-                          <span className="truncate max-w-[200px]">{vendor.email}</span>
+                          <span className="truncate max-w-[200px]">
+                            {vendor.email}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Phone size={14} />
@@ -360,8 +465,12 @@ export default function AdminVendorsPage() {
 
                     <td className="px-6 py-4">
                       <div className="space-y-1">
-                        <p className="font-semibold text-gray-900">{vendor.serviceCount || 0}</p>
-                        <p className="text-xs text-gray-500">{vendor.bookingCount || 0} bookings</p>
+                        <p className="font-semibold text-gray-900">
+                          {vendor.serviceCount || 0}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {vendor.bookingCount || 0} bookings
+                        </p>
                       </div>
                     </td>
 
@@ -394,13 +503,31 @@ export default function AdminVendorsPage() {
                         </button>
                       </div>
                     </td>
+                    {/* Add this column in table */}
+                    <td className="px-6 py-4">
+                      {vendor.adminRating > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <Star
+                            size={16}
+                            className="fill-yellow-400 text-yellow-400"
+                          />
+                          <span className="font-semibold text-gray-900">
+                            {vendor.adminRating}/5
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-sm">Not rated</span>
+                      )}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
                   <td colSpan="6" className="px-6 py-12 text-center">
                     <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600 font-semibold">No vendors found</p>
+                    <p className="text-gray-600 font-semibold">
+                      No vendors found
+                    </p>
                   </td>
                 </tr>
               )}
@@ -415,8 +542,12 @@ export default function AdminVendorsPage() {
           <div className="bg-white rounded-xl max-w-5xl w-full max-h-[95vh] overflow-y-auto my-8">
             <div className="sticky top-0 bg-gradient-to-r from-cyan-600 to-blue-600 text-white p-6 flex justify-between items-center z-10">
               <div>
-                <h2 className="text-2xl font-bold">{selectedVendor.vendor.buisnessName}</h2>
-                <p className="text-cyan-100 text-sm mt-1">Vendor Verification & Details</p>
+                <h2 className="text-2xl font-bold">
+                  {selectedVendor.vendor.buisnessName}
+                </h2>
+                <p className="text-cyan-100 text-sm mt-1">
+                  Vendor Verification & Details
+                </p>
               </div>
               <button
                 onClick={() => setShowDetails(false)}
@@ -437,7 +568,9 @@ export default function AdminVendorsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Business Registration Number */}
                   <div className="bg-white rounded-lg p-4">
-                    <label className="text-sm text-gray-600">Business Registration Number</label>
+                    <label className="text-sm text-gray-600">
+                      Business Registration Number
+                    </label>
                     <p className="font-mono text-lg font-bold text-gray-900 mt-1">
                       {selectedVendor.vendor.businessRegistrationNumber}
                     </p>
@@ -445,18 +578,26 @@ export default function AdminVendorsPage() {
 
                   {/* Owner National ID */}
                   <div className="bg-white rounded-lg p-4">
-                    <label className="text-sm text-gray-600">Owner National ID</label>
+                    <label className="text-sm text-gray-600">
+                      Owner National ID
+                    </label>
                     <p className="font-mono text-lg font-bold text-gray-900 mt-1">
                       {selectedVendor.vendor.ownerNationalId}
                     </p>
                   </div>
 
                   {/* Trade License */}
-                  {selectedVendor.vendor.verificationDocuments?.tradeLicense && (
+                  {selectedVendor.vendor.verificationDocuments
+                    ?.tradeLicense && (
                     <div className="bg-white rounded-lg p-4">
-                      <label className="text-sm text-gray-600 mb-2 block">Trade License</label>
+                      <label className="text-sm text-gray-600 mb-2 block">
+                        Trade License
+                      </label>
                       <a
-                        href={selectedVendor.vendor.verificationDocuments.tradeLicense}
+                        href={
+                          selectedVendor.vendor.verificationDocuments
+                            .tradeLicense
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 text-cyan-600 hover:text-cyan-700 font-semibold"
@@ -466,10 +607,15 @@ export default function AdminVendorsPage() {
                         <Download size={16} />
                       </a>
                       <img
-                        src={selectedVendor.vendor.verificationDocuments.tradeLicense}
+                        src={
+                          selectedVendor.vendor.verificationDocuments
+                            .tradeLicense
+                        }
                         alt="Trade License"
                         className="mt-3 w-full h-48 object-contain border border-gray-200 rounded-lg"
-                        onError={(e) => { e.target.style.display = 'none'; }}
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                        }}
                       />
                     </div>
                   )}
@@ -477,9 +623,14 @@ export default function AdminVendorsPage() {
                   {/* NID Document */}
                   {selectedVendor.vendor.verificationDocuments?.nidDocument && (
                     <div className="bg-white rounded-lg p-4">
-                      <label className="text-sm text-gray-600 mb-2 block">NID Document</label>
+                      <label className="text-sm text-gray-600 mb-2 block">
+                        NID Document
+                      </label>
                       <a
-                        href={selectedVendor.vendor.verificationDocuments.nidDocument}
+                        href={
+                          selectedVendor.vendor.verificationDocuments
+                            .nidDocument
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 text-cyan-600 hover:text-cyan-700 font-semibold"
@@ -489,27 +640,32 @@ export default function AdminVendorsPage() {
                         <Download size={16} />
                       </a>
                       <img
-                        src={selectedVendor.vendor.verificationDocuments.nidDocument}
+                        src={
+                          selectedVendor.vendor.verificationDocuments
+                            .nidDocument
+                        }
                         alt="NID Document"
                         className="mt-3 w-full h-48 object-contain border border-gray-200 rounded-lg"
-                        onError={(e) => { e.target.style.display = 'none'; }}
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                        }}
                       />
                     </div>
                   )}
                 </div>
 
                 {/* Verification Actions */}
-                {selectedVendor.vendor.verificationStatus !== 'Verified' && (
+                {selectedVendor.vendor.verificationStatus !== "Verified" && (
                   <div className="mt-6 flex gap-3">
                     <button
-                      onClick={() => setVerificationAction('approve')}
+                      onClick={() => setVerificationAction("approve")}
                       className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
                     >
                       <CheckCircle size={20} />
                       Approve Vendor
                     </button>
                     <button
-                      onClick={() => setVerificationAction('reject')}
+                      onClick={() => setVerificationAction("reject")}
                       className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
                     >
                       <XCircle size={20} />
@@ -519,48 +675,90 @@ export default function AdminVendorsPage() {
                 )}
               </div>
 
+              {/* After verification buttons, add: */}
+              <div className="mt-4">
+                <button
+                  onClick={() => {
+                    setRatingModal(true);
+                    setRatingValue(selectedVendor.vendor.adminRating || 0);
+                    setRatingComment(
+                      selectedVendor.vendor.adminRatingComment || "",
+                    );
+                  }}
+                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <Star size={20} />
+                  {selectedVendor.vendor.adminRating > 0
+                    ? `Update Rating (${selectedVendor.vendor.adminRating}/5)`
+                    : "Rate This Vendor"}
+                </button>
+              </div>
+
               {/* Contact Information */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Contact Information</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Contact Information
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 rounded-lg p-4">
                   <div>
                     <label className="text-sm text-gray-600">Email</label>
-                    <p className="font-semibold text-gray-900">{selectedVendor.vendor.email}</p>
+                    <p className="font-semibold text-gray-900">
+                      {selectedVendor.vendor.email}
+                    </p>
                   </div>
                   <div>
                     <label className="text-sm text-gray-600">Phone</label>
-                    <p className="font-semibold text-gray-900">{selectedVendor.vendor.phone}</p>
+                    <p className="font-semibold text-gray-900">
+                      {selectedVendor.vendor.phone}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-600">Service Type</label>
-                    <p className="font-semibold text-gray-900">{selectedVendor.vendor.service}</p>
+                    <label className="text-sm text-gray-600">
+                      Service Type
+                    </label>
+                    <p className="font-semibold text-gray-900">
+                      {selectedVendor.vendor.service}
+                    </p>
                   </div>
                   <div>
                     <label className="text-sm text-gray-600">Joined</label>
-                    <p className="font-semibold text-gray-900">{formatDate(selectedVendor.vendor.createdAt)}</p>
+                    <p className="font-semibold text-gray-900">
+                      {formatDate(selectedVendor.vendor.createdAt)}
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Statistics */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Statistics</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Statistics
+                </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-blue-50 rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-blue-600">{selectedVendor.stats.totalServices}</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {selectedVendor.stats.totalServices}
+                    </p>
                     <p className="text-sm text-gray-600">Services</p>
                   </div>
                   <div className="bg-green-50 rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-green-600">{selectedVendor.stats.totalBookings}</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {selectedVendor.stats.totalBookings}
+                    </p>
                     <p className="text-sm text-gray-600">Bookings</p>
                   </div>
                   <div className="bg-purple-50 rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-purple-600">{selectedVendor.stats.completedBookings}</p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {selectedVendor.stats.completedBookings}
+                    </p>
                     <p className="text-sm text-gray-600">Completed</p>
                   </div>
                   <div className="bg-yellow-50 rounded-lg p-4 text-center">
                     <p className="text-2xl font-bold text-yellow-600">
-                      ৳{Math.round(selectedVendor.stats.revenue.total).toLocaleString()}
+                      ৳
+                      {Math.round(
+                        selectedVendor.stats.revenue.total,
+                      ).toLocaleString()}
                     </p>
                     <p className="text-sm text-gray-600">Revenue</p>
                   </div>
@@ -570,17 +768,34 @@ export default function AdminVendorsPage() {
               {/* Services */}
               {selectedVendor.services.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Services</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Services
+                  </h3>
                   <div className="space-y-3">
                     {selectedVendor.services.map((service) => (
-                      <div key={service._id} className="bg-gray-50 rounded-lg p-4 flex justify-between items-center">
+                      <div
+                        key={service._id}
+                        className="bg-gray-50 rounded-lg p-4 flex justify-between items-center"
+                      >
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-900">{service.companyName}</p>
-                          <p className="text-sm text-gray-600">{service.serviceCategory}</p>
-                          <p className="text-sm text-gray-500">Starting at ৳{service.startingPrice?.toLocaleString()}</p>
+                          <p className="font-semibold text-gray-900">
+                            {service.companyName}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {service.serviceCategory}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Starting at ৳
+                            {service.startingPrice?.toLocaleString()}
+                          </p>
                         </div>
                         <button
-                          onClick={() => handleDeleteService(selectedVendor.vendor._id, service._id)}
+                          onClick={() =>
+                            handleDeleteService(
+                              selectedVendor.vendor._id,
+                              service._id,
+                            )
+                          }
                           className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
                           title="Delete Service"
                         >
@@ -596,16 +811,105 @@ export default function AdminVendorsPage() {
         </div>
       )}
 
+      {/* 🆕 Rating Modal */}
+      {ratingModal && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Star className="text-yellow-500" size={24} />
+              Rate Vendor
+            </h3>
+
+            <div className="space-y-4">
+              {/* Vendor Info */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="font-semibold text-gray-900">
+                  {selectedVendor?.vendor.buisnessName}
+                </p>
+                <p className="text-sm text-gray-600">
+                  {selectedVendor?.vendor.service}
+                </p>
+              </div>
+
+              {/* Rating Stars */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rating (0-5) *
+                </label>
+                <div className="flex gap-2 items-center">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRatingValue(star)}
+                      className="transition-transform hover:scale-110"
+                    >
+                      <Star
+                        size={40}
+                        className={
+                          star <= ratingValue
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "text-gray-300"
+                        }
+                      />
+                    </button>
+                  ))}
+                  <span className="ml-4 text-2xl font-bold text-gray-900">
+                    {ratingValue}/5
+                  </span>
+                </div>
+              </div>
+
+              {/* Rating Comment */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rating Comment (Optional)
+                </label>
+                <textarea
+                  value={ratingComment}
+                  onChange={(e) => setRatingComment(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none"
+                  placeholder="Why this rating? (visible to public)"
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setRatingModal(false);
+                  setRatingValue(0);
+                  setRatingComment("");
+                }}
+                className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRateVendor}
+                className="flex-1 px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                Submit Rating
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Verification Action Modal */}
       {verificationAction && (
         <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">
-              {verificationAction === 'approve' ? 'Approve Vendor' : 'Reject Vendor'}
+              {verificationAction === "approve"
+                ? "Approve Vendor"
+                : "Reject Vendor"}
             </h3>
 
             <div className="space-y-4">
-              {verificationAction === 'reject' && (
+              {verificationAction === "reject" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Rejection Reason *
@@ -638,8 +942,8 @@ export default function AdminVendorsPage() {
               <button
                 onClick={() => {
                   setVerificationAction(null);
-                  setRejectionReason('');
-                  setAdminNotes('');
+                  setRejectionReason("");
+                  setAdminNotes("");
                 }}
                 className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-semibold transition-colors"
               >
@@ -648,12 +952,12 @@ export default function AdminVendorsPage() {
               <button
                 onClick={() => handleVerifyVendor(verificationAction)}
                 className={`flex-1 px-6 py-3 text-white rounded-lg font-semibold transition-colors ${
-                  verificationAction === 'approve'
-                    ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-red-600 hover:bg-red-700'
+                  verificationAction === "approve"
+                    ? "bg-green-600 hover:bg-green-700"
+                    : "bg-red-600 hover:bg-red-700"
                 }`}
               >
-                {verificationAction === 'approve' ? 'Approve' : 'Reject'}
+                {verificationAction === "approve" ? "Approve" : "Reject"}
               </button>
             </div>
           </div>
@@ -669,14 +973,19 @@ export default function AdminVendorsPage() {
                 <AlertCircle className="text-red-600" size={24} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Delete Vendor</h3>
-                <p className="text-sm text-gray-600">This will delete all associated services</p>
+                <h3 className="text-lg font-bold text-gray-900">
+                  Delete Vendor
+                </h3>
+                <p className="text-sm text-gray-600">
+                  This will delete all associated services
+                </p>
               </div>
             </div>
 
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <p className="text-sm text-gray-700">
-                Are you sure you want to delete <strong>{deleteConfirm.buisnessName}</strong>?
+                Are you sure you want to delete{" "}
+                <strong>{deleteConfirm.buisnessName}</strong>?
               </p>
             </div>
 

@@ -35,17 +35,47 @@ export default function VendorBookingsPage() {
     rejected: 0
   });
 
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (!userData) {
+ useEffect(() => {
+  // 🎯 FIX: Check both possible localStorage keys
+  let userData = localStorage.getItem('vendorData');
+  
+  if (!userData) {
+    // Fallback to 'user' key
+    userData = localStorage.getItem('user');
+  }
+
+  console.log('🔍 Checking localStorage...');
+  console.log('vendorData exists:', !!localStorage.getItem('vendorData'));
+  console.log('user exists:', !!localStorage.getItem('user'));
+
+  if (!userData) {
+    console.error('❌ No vendor data found in localStorage');
+    window.location.href = '/login';
+    return;
+  }
+  
+  try {
+    const parsedVendor = JSON.parse(userData);
+    console.log('👤 Parsed vendor:', parsedVendor);
+    
+    const vendorId = parsedVendor._id || parsedVendor.id;
+    console.log('🆔 Using vendor ID:', vendorId);
+
+    if (!vendorId) {
+      console.error('❌ No vendor ID found');
+      alert('Vendor ID not found. Please login again.');
       window.location.href = '/login';
       return;
     }
-    
-    const parsedVendor = JSON.parse(userData);
+
     setVendor(parsedVendor);
-    fetchBookings(parsedVendor._id || parsedVendor.id);
-  }, []);
+    fetchBookings(vendorId);
+  } catch (error) {
+    console.error('❌ Error parsing vendor data:', error);
+    alert('Session expired. Please login again.');
+    window.location.href = '/login';
+  }
+}, []);
 
   useEffect(() => {
     applyFilters();

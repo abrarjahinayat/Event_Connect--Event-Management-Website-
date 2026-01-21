@@ -1,115 +1,125 @@
+const Admin = require("../model/admin.model");
+const Signup = require("../model/signup.model");
+const User = require("../model/userSignup.model");
+const vendorServicesModel = require("../model/vendor.services.model");
+const Booking = require("../model/booking.model");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const adminModel = require("../model/admin.model");
-const signupModel = require("../model/signup.model");
-const userSignupModel = require("../model/userSignup.model");
-const bookingModel = require("../model/booking.model");
-const vendorServicesModel = require("../model/vendor.services.model");
 
 // ====================================
 // ADMIN AUTHENTICATION
 // ====================================
 
-// @desc    Admin Login
-// @route   POST /api/v1/admin/login
-// @access  Public
 const adminLoginController = async (req, res) => {
   try {
     const { email, password } = req.body;
-    
-    // Find admin with password
-    const admin = await adminModel.findOne({ email }).select('+password');
-    
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required"
+      });
+    }
+
+    const admin = await Admin.findOne({ email }).select('+password');
+
     if (!admin) {
       return res.status(401).json({
         success: false,
-        message: "Admin not found with this email"
+        message: "Invalid email or password"
       });
     }
-    
-    // Check password
-    const isMatch = await bcrypt.compare(password, admin.password);
-    
-    if (!isMatch) {
+
+    if (!admin.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: "Admin account is deactivated"
+      });
+    }
+
+    const isPasswordCorrect = await admin.comparePassword(password);
+
+    if (!isPasswordCorrect) {
       return res.status(401).json({
         success: false,
-        message: "Password is incorrect"
+        message: "Invalid email or password"
       });
     }
-    
-    // Success
+
+    admin.lastLogin = new Date();
+    await admin.save();
+
     const token = jwt.sign(
-      { id: admin._id, email: admin.email },
-      process.env.PRIVATE_KEY,
+      {
+        id: admin._id,
+        email: admin.email,
+        role: admin.role
+      },
+      process.env.JWT_SECRET,
       { expiresIn: "24h" }
     );
-    
+
+    const adminData = {
+      _id: admin._id,
+      name: admin.name,
+      email: admin.email,
+      role: admin.role,
+      permissions: admin.permissions
+    };
+
     return res.status(200).json({
       success: true,
-      message: "Login successful",
+      message: "Admin login successful",
       token,
-      data: { email: admin.email, name: admin.name, role: admin.role }
+      admin: adminData
     });
-    
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Admin login error:", error);
     return res.status(500).json({
       success: false,
-      message: error.message
+      message: "Server error",
+      error: error.message
     });
   }
 };
 
-// @desc    Create Admin (Only super_admin can create)
-// @route   POST /api/v1/admin/create
-// @access  Private (Super Admin only)
 const createAdminController = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
-    // Validation
-    if (!name || !email || !password) {
+    const existingAdmin = await Admin.findOne({ email });
+    if (existingAdmin) {
       return res.status(400).json({
         success: false,
-        message: "Name, email, and password are required",
+        message: "Admin with this email already exists"
       });
     }
 
-    // Check if admin exists
-    const adminExists = await adminModel.findOne({ email });
-    if (adminExists) {
-      return res.status(400).json({
-        success: false,
-        message: "Admin with this email already exists",
-      });
-    }
-
-    // Create admin
-    const admin = new adminModel({
+    const admin = new Admin({
       name,
       email,
       password,
-      role: role || 'admin',
+      role: role || 'admin'
     });
 
     await admin.save();
 
-    // Remove password from response
-    const adminResponse = admin.toObject();
-    delete adminResponse.password;
-
     return res.status(201).json({
       success: true,
       message: "Admin created successfully",
-      data: adminResponse,
+      data: {
+        _id: admin._id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role
+      }
     });
-
   } catch (error) {
     console.error("Create admin error:", error);
     return res.status(500).json({
       success: false,
       message: "Server error",
-      error: error.message,
+      error: error.message
     });
   }
 };
@@ -118,193 +128,304 @@ const createAdminController = async (req, res) => {
 // VENDOR MANAGEMENT
 // ====================================
 
-// @desc    Get all vendors (with filters)
-// @route   GET /api/v1/admin/vendors
-// @access  Private (Admin)
 const getAllVendorsController = async (req, res) => {
   try {
-    const {
-      verificationStatus,
-      service,
-      isVerified,
-      page = 1,
-      limit = 20,
-      sortBy = "createdAt",
-      order = "desc",
-    } = req.query;
+    const vendors = await Signup.find({}).sort({ createdAt: -1 });
 
-    // Build query
-    const query = {};
+    // Get service count for each vendor
+    const vendorsWithStats = await Promise.all(
+      vendors.map(async (vendor) => {
+        const serviceCount = await vendorServicesModel.countDocuments({ vendorId: vendor._id });
+        const bookingCount = await Booking.countDocuments({ vendor: vendor._id }); // 🎯 FIXED: vendor not vendorId
+        
+        return {
+          ...vendor.toObject(),
+          serviceCount,
+          bookingCount
+        };
+      })
+    );
 
-    if (verificationStatus) {
-      query.verificationStatus = verificationStatus;
-    }
-
-    if (service) {
-      query.service = service;
-    }
-
-    if (isVerified !== undefined) {
-      query.isVerified = isVerified === 'true';
-    }
-
-    // Pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    // Sort
-    const sortOptions = {};
-    sortOptions[sortBy] = order === "asc" ? 1 : -1;
-
-    // Execute query
-    const vendors = await signupModel
-      .find(query)
-      .select('-password -otp')
-      .limit(parseInt(limit))
-      .skip(skip)
-      .sort(sortOptions);
-
-    const total = await signupModel.countDocuments(query);
-
-    // Get statistics
+    // Calculate stats
     const stats = {
-      total: await signupModel.countDocuments(),
-      pending: await signupModel.countDocuments({ verificationStatus: 'Pending' }),
-      underReview: await signupModel.countDocuments({ verificationStatus: 'Under Review' }),
-      verified: await signupModel.countDocuments({ verificationStatus: 'Verified' }),
-      rejected: await signupModel.countDocuments({ verificationStatus: 'Rejected' }),
+      totalVendors: vendors.length,
+      verified: vendors.filter(v => v.verificationStatus === 'Verified').length,
+      pending: vendors.filter(v => v.verificationStatus === 'Pending').length,
+      underReview: vendors.filter(v => v.verificationStatus === 'Under Review').length,
+      rejected: vendors.filter(v => v.verificationStatus === 'Rejected').length
     };
 
     return res.status(200).json({
       success: true,
       message: "Vendors fetched successfully",
-      count: vendors.length,
-      total,
-      page: parseInt(page),
-      pages: Math.ceil(total / parseInt(limit)),
-      stats,
-      data: vendors,
+      data: vendorsWithStats,
+      stats
     });
-
   } catch (error) {
     console.error("Get vendors error:", error);
     return res.status(500).json({
       success: false,
       message: "Server error",
-      error: error.message,
+      error: error.message
     });
   }
 };
 
-// @desc    Verify/Approve Vendor
-// @route   PUT /api/v1/admin/vendors/:vendorId/verify
-// @access  Private (Admin)
-const verifyVendorController = async (req, res) => {
+const getVendorDetailsController = async (req, res) => {
   try {
-    const { vendorId } = req.params;
-    const { approved, rejectionReason, adminNotes, adminId } = req.body;
+    const { id } = req.params;
 
-    const vendor = await signupModel.findById(vendorId);
-
+    const vendor = await Signup.findById(id);
+    
     if (!vendor) {
       return res.status(404).json({
         success: false,
-        message: "Vendor not found",
+        message: "Vendor not found"
       });
     }
 
-    if (approved) {
-      // Approve vendor
-      vendor.verificationStatus = 'Verified';
-      vendor.isVerified = true;
-      vendor.verification.reviewedAt = new Date();
-      vendor.verification.reviewedBy = adminId;
-      vendor.verification.adminNotes = adminNotes || '';
+    const services = await vendorServicesModel.find({ vendorId: id });
+    const bookings = await Booking.find({ vendor: id }); // 🎯 FIXED: vendor not vendorId
 
-      await vendor.save();
+    const completedBookings = bookings.filter(b => b.bookingStatus === 'completed').length;
+    const totalRevenue = bookings
+      .filter(b => b.payment?.advancePaid || b.payment?.remainingPaid)
+      .reduce((sum, b) => {
+        let amount = 0;
+        if (b.payment?.advancePaid) amount += b.advancePayment || 0;
+        if (b.payment?.remainingPaid) amount += b.remainingPayment || 0;
+        return sum + amount;
+      }, 0);
 
-      // TODO: Send approval email to vendor
-
-      return res.status(200).json({
-        success: true,
-        message: "Vendor verified successfully",
-        data: vendor,
-      });
-    } else {
-      // Reject vendor
-      vendor.verificationStatus = 'Rejected';
-      vendor.isVerified = false;
-      vendor.verification.reviewedAt = new Date();
-      vendor.verification.reviewedBy = adminId;
-      vendor.verification.rejectionReason = rejectionReason || 'Not specified';
-      vendor.verification.adminNotes = adminNotes || '';
-
-      await vendor.save();
-
-      // TODO: Send rejection email to vendor
-
-      return res.status(200).json({
-        success: true,
-        message: "Vendor verification rejected",
-        data: vendor,
-      });
-    }
-
-  } catch (error) {
-    console.error("Verify vendor error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message,
-    });
-  }
-};
-
-// @desc    Rate Vendor (for listing priority)
-// @route   PUT /api/v1/admin/vendors/:vendorId/rate
-// @access  Private (Admin)
-const rateVendorController = async (req, res) => {
-  try {
-    const { vendorId } = req.params;
-    const { rating, featured } = req.body; // rating: 1-5, featured: boolean
-
-    const vendor = await signupModel.findById(vendorId);
-
-    if (!vendor) {
-      return res.status(404).json({
-        success: false,
-        message: "Vendor not found",
-      });
-    }
-
-    // Add admin rating field if doesn't exist
-    if (!vendor.adminRating) {
-      vendor.adminRating = {};
-    }
-
-    if (rating !== undefined) {
-      vendor.adminRating.rating = rating;
-    }
-
-    if (featured !== undefined) {
-      vendor.adminRating.featured = featured;
-    }
-
-    vendor.adminRating.updatedAt = new Date();
-
-    await vendor.save();
+    const stats = {
+      totalServices: services.length,
+      totalBookings: bookings.length,
+      completedBookings,
+      revenue: {
+        total: totalRevenue,
+        advance: bookings.reduce((sum, b) => sum + (b.payment?.advancePaid ? b.advancePayment || 0 : 0), 0),
+        remaining: bookings.reduce((sum, b) => sum + (b.payment?.remainingPaid ? b.remainingPayment || 0 : 0), 0)
+      }
+    };
 
     return res.status(200).json({
       success: true,
-      message: "Vendor rating updated successfully",
-      data: vendor,
+      message: "Vendor details fetched successfully",
+      data: {
+        vendor,
+        services,
+        stats
+      }
     });
-
   } catch (error) {
-    console.error("Rate vendor error:", error);
+    console.error("Get vendor details error:", error);
     return res.status(500).json({
       success: false,
       message: "Server error",
-      error: error.message,
+      error: error.message
+    });
+  }
+};
+
+// 🎯 FIXED: Vendor Verification Controller
+const verifyVendorController = async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    const { action, rejectionReason, adminNotes, adminId } = req.body;
+
+    console.log('🔍 Verification request:', { vendorId, action, rejectionReason });
+
+    if (!action || !['approve', 'reject', 'review'].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid action is required (approve, reject, or review)"
+      });
+    }
+
+    if (action === 'reject' && !rejectionReason) {
+      return res.status(400).json({
+        success: false,
+        message: "Rejection reason is required"
+      });
+    }
+
+    const vendor = await Signup.findById(vendorId);
+    
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found"
+      });
+    }
+
+    // 🎯 FIX: Update verification status based on action
+    if (action === 'approve') {
+      vendor.verificationStatus = 'Verified';
+      vendor.isVerified = true;
+      vendor.verifiedAt = new Date();
+      vendor.verifiedBy = adminId;
+      console.log('✅ Setting vendor to Verified');
+    } else if (action === 'reject') {
+      vendor.verificationStatus = 'Rejected';
+      vendor.isVerified = false;
+      vendor.rejectionReason = rejectionReason;
+      vendor.rejectedAt = new Date();
+      vendor.rejectedBy = adminId;
+      console.log('❌ Setting vendor to Rejected');
+    } else if (action === 'review') {
+      vendor.verificationStatus = 'Under Review';
+      vendor.isVerified = false;
+      console.log('🔄 Setting vendor to Under Review');
+    }
+
+    if (adminNotes) {
+      vendor.adminNotes = adminNotes;
+    }
+
+    await vendor.save();
+
+    console.log('💾 Vendor saved with status:', vendor.verificationStatus);
+
+    // 🎯 Update all vendor's services with verified status
+    if (action === 'approve') {
+      await vendorServicesModel.updateMany(
+        { vendorId: vendor._id },
+        { isVerified: true }
+      );
+      console.log('✅ Updated all services to verified');
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Vendor ${action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'moved to review'} successfully`,
+      data: vendor
+    });
+  } catch (error) {
+    console.error("❌ Verify vendor error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// 🆕 NEW: Rate Vendor Controller
+const rateVendorController = async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    const { rating, ratingComment, adminId } = req.body;
+
+    console.log('⭐ Rating request:', { vendorId, rating, ratingComment });
+
+    if (!rating || rating < 0 || rating > 5) {
+      return res.status(400).json({
+        success: false,
+        message: "Rating must be between 0 and 5"
+      });
+    }
+
+    const vendor = await Signup.findById(vendorId);
+    
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found"
+      });
+    }
+
+    // Update vendor rating
+    vendor.adminRating = rating;
+    vendor.adminRatingComment = ratingComment || '';
+    vendor.ratedBy = adminId;
+    vendor.ratedAt = new Date();
+
+    await vendor.save();
+
+    console.log('✅ Vendor rated successfully');
+
+    // Update all vendor's services with admin rating
+    await vendorServicesModel.updateMany(
+      { vendorId: vendor._id },
+      { adminRating: rating }
+    );
+
+    console.log('✅ Updated all services with admin rating');
+
+    return res.status(200).json({
+      success: true,
+      message: "Vendor rated successfully",
+      data: vendor
+    });
+  } catch (error) {
+    console.error("❌ Rate vendor error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+const deleteVendorController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const vendor = await Signup.findById(id);
+    
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found"
+      });
+    }
+
+    await vendorServicesModel.deleteMany({ vendorId: id });
+    await Booking.deleteMany({ vendor: id }); // 🎯 FIXED: vendor not vendorId
+    await Signup.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Vendor and associated data deleted successfully"
+    });
+  } catch (error) {
+    console.error("Delete vendor error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+const deleteVendorServiceController = async (req, res) => {
+  try {
+    const { vendorId, serviceId } = req.params;
+
+    const service = await vendorServicesModel.findOne({
+      _id: serviceId,
+      vendorId: vendorId
+    });
+
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: "Service not found"
+      });
+    }
+
+    await vendorServicesModel.findByIdAndDelete(serviceId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Service deleted successfully"
+    });
+  } catch (error) {
+    console.error("Delete service error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
     });
   }
 };
@@ -313,74 +434,118 @@ const rateVendorController = async (req, res) => {
 // USER MANAGEMENT
 // ====================================
 
-// @desc    Get all users
-// @route   GET /api/v1/admin/users
-// @access  Private (Admin)
-// 🔧 REPLACE your getAllUsersController with this updated version:
-
-// @desc    Get all users
-// @route   GET /api/v1/admin/users
-// @access  Private (Admin)
 const getAllUsersController = async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      sortBy = "createdAt",
-      order = "desc",
-    } = req.query;
+    const users = await User.find({}).sort({ createdAt: -1 });
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    const sortOptions = {};
-    sortOptions[sortBy] = order === "asc" ? 1 : -1;
-
-    const users = await userSignupModel
-      .find()
-      .select('-password')
-      .limit(parseInt(limit))
-      .skip(skip)
-      .sort(sortOptions);
-
-    const total = await userSignupModel.countDocuments();
-
-    // 🔧 FIX: Calculate stats properly
-    const stats = {
-      totalUsers: total,
-      verifiedEmails: await userSignupModel.countDocuments({ isEmailVerified: true }),
-      activeToday: await userSignupModel.countDocuments({
-        updatedAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
-      }),
-    };
-
-    // 🔧 FIX: Get booking counts for each user
-    const usersWithBookings = await Promise.all(
+    const usersWithStats = await Promise.all(
       users.map(async (user) => {
-        const bookingCount = await bookingModel.countDocuments({ user: user._id });
+        const bookingCount = await Booking.countDocuments({ user: user._id }); // 🎯 FIXED: user not userId
+        
         return {
           ...user.toObject(),
-          bookingCount,
+          bookingCount
         };
       })
     );
 
+    const stats = {
+      totalUsers: users.length,
+      activeUsers: users.filter(u => u.isActive !== false).length,
+      verifiedUsers: users.filter(u => u.verify === true).length
+    };
+
     return res.status(200).json({
       success: true,
       message: "Users fetched successfully",
-      count: users.length,
-      total,
-      page: parseInt(page),
-      pages: Math.ceil(total / parseInt(limit)),
-      stats, // 🔧 FIX: Now stats is always returned
-      data: usersWithBookings,
+      data: usersWithStats,
+      stats
     });
-
   } catch (error) {
     console.error("Get users error:", error);
     return res.status(500).json({
       success: false,
       message: "Server error",
-      error: error.message,
+      error: error.message
+    });
+  }
+};
+
+const getUserDetailsController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    const bookings = await Booking.find({ user: id }) // 🎯 FIXED: user not userId
+      .populate('service')
+      .populate('vendor');
+
+    const stats = {
+      totalBookings: bookings.length,
+      completedBookings: bookings.filter(b => b.bookingStatus === 'completed').length,
+      totalSpent: bookings
+        .filter(b => b.payment?.advancePaid || b.payment?.remainingPaid)
+        .reduce((sum, b) => {
+          let amount = 0;
+          if (b.payment?.advancePaid) amount += b.advancePayment || 0;
+          if (b.payment?.remainingPaid) amount += b.remainingPayment || 0;
+          return sum + amount;
+        }, 0)
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: "User details fetched successfully",
+      data: {
+        user,
+        bookings,
+        stats
+      }
+    });
+  } catch (error) {
+    console.error("Get user details error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+const deleteUserController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    await Booking.deleteMany({ user: id }); // 🎯 FIXED: user not userId
+    await User.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      success: true,
+      message: "User and associated bookings deleted successfully"
+    });
+  } catch (error) {
+    console.error("Delete user error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
     });
   }
 };
@@ -389,175 +554,331 @@ const getAllUsersController = async (req, res) => {
 // BOOKING MANAGEMENT
 // ====================================
 
-// @desc    Get all bookings
-// @route   GET /api/v1/admin/bookings
-// @access  Private (Admin)
+// 🎯 COMPLETELY FIXED: Updated to match booking model schema
 const getAllBookingsController = async (req, res) => {
   try {
-    const {
-      bookingStatus,
-      page = 1,
-      limit = 20,
-      sortBy = "createdAt",
-      order = "desc",
-    } = req.query;
+    console.log('📥 GET /admin/bookings called');
+    
+    const { status, page = 1, limit = 50 } = req.query;
 
     const query = {};
 
-    if (bookingStatus) {
-      query.bookingStatus = bookingStatus;
+    // Filter by status if provided
+    if (status && status !== 'all') {
+      query.bookingStatus = status;
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const sortOptions = {};
-    sortOptions[sortBy] = order === "asc" ? 1 : -1;
-
-    const bookings = await bookingModel
-      .find(query)
+    // 🎯 FIXED: Updated populate paths to match booking model
+    const bookings = await Booking.find(query)
       .populate('user', 'name email phone')
-      .populate('service', 'companyName serviceCategory location')
-      .populate('vendor', 'buisnessName email phone')
+      .populate('service', 'companyName serviceCategory location image')
+      .populate('vendor', 'buisnessName email phone service')
+      .sort({ createdAt: -1 })
       .limit(parseInt(limit))
-      .skip(skip)
-      .sort(sortOptions);
+      .skip(skip);
 
-    const total = await bookingModel.countDocuments(query);
+    console.log('📊 Total bookings found:', bookings.length);
 
-    // Get statistics
+    const total = await Booking.countDocuments(query);
+
+    // 🎯 FIXED: Calculate stats based on bookingStatus field
     const stats = {
-      total: await bookingModel.countDocuments(),
-      pending: await bookingModel.countDocuments({ bookingStatus: 'pending' }),
-      approved: await bookingModel.countDocuments({ bookingStatus: 'approved' }),
-      paymentCompleted: await bookingModel.countDocuments({ bookingStatus: 'payment_completed' }),
-      confirmed: await bookingModel.countDocuments({ bookingStatus: 'confirmed' }),
-      completed: await bookingModel.countDocuments({ bookingStatus: 'completed' }),
-      cancelled: await bookingModel.countDocuments({ bookingStatus: 'cancelled' }),
-      rejected: await bookingModel.countDocuments({ bookingStatus: 'rejected' }),
+      total: await Booking.countDocuments(),
+      pending: await Booking.countDocuments({ bookingStatus: 'pending' }),
+      approved: await Booking.countDocuments({ bookingStatus: 'approved' }),
+      payment_completed: await Booking.countDocuments({ bookingStatus: 'payment_completed' }),
+      confirmed: await Booking.countDocuments({ bookingStatus: 'confirmed' }),
+      completed: await Booking.countDocuments({ bookingStatus: 'completed' }),
+      cancelled: await Booking.countDocuments({ bookingStatus: 'cancelled' }),
+      rejected: await Booking.countDocuments({ bookingStatus: 'rejected' }),
     };
+
+    console.log('📈 Stats:', stats);
 
     return res.status(200).json({
       success: true,
       message: "Bookings fetched successfully",
-      count: bookings.length,
+      data: bookings,
+      stats,
       total,
       page: parseInt(page),
       pages: Math.ceil(total / parseInt(limit)),
-      stats,
-      data: bookings,
     });
-
   } catch (error) {
-    console.error("Get bookings error:", error);
+    console.error("❌ Get bookings error:", error);
     return res.status(500).json({
       success: false,
       message: "Server error",
-      error: error.message,
+      error: error.message
     });
   }
 };
 
-// @desc    Get pending bookings (needs approval)
-// @route   GET /api/v1/admin/bookings/pending
-// @access  Private (Admin)
 const getPendingBookingsController = async (req, res) => {
   try {
-    const bookings = await bookingModel
-      .find({ bookingStatus: 'pending' })
+    // 🎯 FIXED: Use bookingStatus field
+    const bookings = await Booking.find({ bookingStatus: 'pending' })
       .populate('user', 'name email phone')
-      .populate('service', 'companyName serviceCategory location image')
       .populate('vendor', 'buisnessName email phone')
+      .populate('service', 'companyName serviceCategory')
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,
       message: "Pending bookings fetched successfully",
-      count: bookings.length,
-      data: bookings,
+      data: bookings
     });
-
   } catch (error) {
     console.error("Get pending bookings error:", error);
     return res.status(500).json({
       success: false,
       message: "Server error",
-      error: error.message,
+      error: error.message
+    });
+  }
+};
+
+// 🎯 COMPLETELY FIXED: Updated to match booking model workflow
+const approveRejectBookingController = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { action, rejectionReason, adminNotes, adminId } = req.body;
+
+    console.log('🔍 Booking approval request:', { bookingId, action });
+
+    if (!action || !['approve', 'reject'].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid action is required (approve or reject)"
+      });
+    }
+
+    const booking = await Booking.findById(bookingId)
+      .populate('service')
+      .populate('user')
+      .populate('vendor');
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found"
+      });
+    }
+
+    if (booking.bookingStatus !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: "This booking has already been reviewed"
+      });
+    }
+
+    // 🎯 FIXED: Update based on booking model schema
+    if (action === 'approve') {
+      booking.bookingStatus = 'approved';
+      booking.adminApproval.approved = true;
+      booking.adminApproval.approvedBy = adminId;
+      booking.adminApproval.approvedAt = new Date();
+      booking.adminApproval.adminNotes = adminNotes || '';
+
+      await booking.save();
+
+      console.log('✅ Booking approved successfully');
+
+      return res.status(200).json({
+        success: true,
+        message: 'Booking approved successfully! Payment link will be sent to the customer.',
+        data: booking,
+      });
+    } else if (action === 'reject') {
+      if (!rejectionReason || !rejectionReason.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Rejection reason is required',
+        });
+      }
+
+      booking.bookingStatus = 'rejected';
+      booking.adminApproval.approved = false;
+      booking.adminApproval.rejectionReason = rejectionReason;
+      booking.adminApproval.adminNotes = adminNotes || '';
+
+      await booking.save();
+
+      console.log('❌ Booking rejected successfully');
+
+      return res.status(200).json({
+        success: true,
+        message: 'Booking rejected successfully',
+        data: booking,
+      });
+    }
+  } catch (error) {
+    console.error("❌ Approve/reject booking error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
     });
   }
 };
 
 // ====================================
-// DASHBOARD ANALYTICS
+// ANALYTICS
 // ====================================
 
-// @desc    Get admin dashboard analytics
-// @route   GET /api/v1/admin/analytics
-// @access  Private (Admin)
 const getAnalyticsController = async (req, res) => {
   try {
-    // Get counts
-    const totalVendors = await signupModel.countDocuments();
-    const totalUsers = await userSignupModel.countDocuments();
-    const totalBookings = await bookingModel.countDocuments();
+    console.log('📊 Fetching analytics...');
+
+    // Basic counts
+    const totalVendors = await Signup.countDocuments();
+    const verifiedVendors = await Signup.countDocuments({ isVerified: true });
+    const totalUsers = await User.countDocuments();
+    const totalBookings = await Booking.countDocuments();
     const totalServices = await vendorServicesModel.countDocuments();
 
-    // Vendor stats
-    const pendingVendors = await signupModel.countDocuments({ verificationStatus: 'Pending' });
-    const verifiedVendors = await signupModel.countDocuments({ verificationStatus: 'Verified' });
+    console.log('📈 Basic stats:', { totalVendors, totalUsers, totalBookings, totalServices });
 
-    // Booking stats
-    const pendingBookings = await bookingModel.countDocuments({ bookingStatus: 'pending' });
-    const completedBookings = await bookingModel.countDocuments({ bookingStatus: 'completed' });
-
-    // Revenue calculation (total from completed bookings)
-    const revenueData = await bookingModel.aggregate([
-      { $match: { 'payment.advancePaid': true } },
-      { $group: { _id: null, totalRevenue: { $sum: '$advancePayment' } } }
-    ]);
-
-    const totalRevenue = revenueData.length > 0 ? revenueData[0].totalRevenue : 0;
-
-    // Recent activities (last 10 bookings)
-    const recentBookings = await bookingModel
-      .find()
-      .populate('user', 'name')
+    // Get all bookings for detailed stats
+    const allBookings = await Booking.find({})
+      .populate('user', 'name email')
+      .populate('vendor', 'buisnessName')
       .populate('service', 'companyName')
-      .sort({ createdAt: -1 })
-      .limit(10);
+      .sort({ createdAt: -1 });
 
-    // Service category distribution
+    console.log('📦 Total bookings fetched:', allBookings.length);
+
+    // Calculate booking stats
+    const bookingStats = {
+      pending: allBookings.filter(b => b.bookingStatus === 'pending').length,
+      approved: allBookings.filter(b => b.bookingStatus === 'approved').length,
+      payment_completed: allBookings.filter(b => b.bookingStatus === 'payment_completed').length,
+      confirmed: allBookings.filter(b => b.bookingStatus === 'confirmed').length,
+      in_progress: allBookings.filter(b => b.bookingStatus === 'in_progress').length,
+      completed: allBookings.filter(b => b.bookingStatus === 'completed').length,
+      cancelled: allBookings.filter(b => b.bookingStatus === 'cancelled').length,
+      rejected: allBookings.filter(b => b.bookingStatus === 'rejected').length,
+    };
+
+    console.log('📊 Booking stats:', bookingStats);
+
+    // Calculate revenue
+    let totalRevenue = 0;
+    let advanceRevenue = 0;
+    let remainingRevenue = 0;
+    let pendingRevenue = 0;
+
+    allBookings.forEach(booking => {
+      // Advance paid
+      if (booking.payment?.advancePaid) {
+        advanceRevenue += booking.advancePayment || 0;
+        totalRevenue += booking.advancePayment || 0;
+      }
+      
+      // Remaining paid
+      if (booking.payment?.remainingPaid) {
+        remainingRevenue += booking.remainingPayment || 0;
+        totalRevenue += booking.remainingPayment || 0;
+      }
+
+      // Pending revenue (approved but not paid)
+      if (booking.bookingStatus === 'approved' || booking.bookingStatus === 'payment_pending') {
+        if (!booking.payment?.advancePaid) {
+          pendingRevenue += booking.advancePayment || 0;
+        }
+        if (!booking.payment?.remainingPaid) {
+          pendingRevenue += booking.remainingPayment || 0;
+        }
+      }
+    });
+
+    console.log('💰 Revenue:', { total: totalRevenue, advance: advanceRevenue, remaining: remainingRevenue, pending: pendingRevenue });
+
+    // Get recent bookings (last 10)
+    const recentBookings = allBookings.slice(0, 10);
+
+    // Get service category distribution
     const serviceCategoryStats = await vendorServicesModel.aggregate([
-      { $group: { _id: '$serviceCategory', count: { $sum: 1 } } }
+      { $match: { isActive: true } },
+      { 
+        $group: { 
+          _id: '$serviceCategory',
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } }
     ]);
+
+    console.log('📊 Service categories:', serviceCategoryStats);
+
+    // 🎯 CRITICAL: Structure matches dashboard expectations
+    const analyticsData = {
+      // Overview section - matches dashboard StatCards
+      overview: {
+        totalVendors,
+        totalUsers,
+        totalBookings,
+        totalRevenue: advanceRevenue, // Dashboard shows "Revenue (Advance)"
+        totalServices,
+      },
+
+      // Vendors section - matches dashboard
+      vendors: {
+        total: totalVendors,
+        verified: verifiedVendors,
+        pending: totalVendors - verifiedVendors,
+      },
+
+      // Users section
+      users: {
+        total: totalUsers,
+      },
+
+      // Bookings section - matches dashboard cards
+      bookings: {
+        total: totalBookings,
+        pending: bookingStats.pending,
+        approved: bookingStats.approved,
+        payment_completed: bookingStats.payment_completed,
+        confirmed: bookingStats.confirmed,
+        in_progress: bookingStats.in_progress,
+        completed: bookingStats.completed,
+        cancelled: bookingStats.cancelled,
+        rejected: bookingStats.rejected,
+      },
+
+      // Services section
+      services: {
+        total: totalServices,
+      },
+
+      // Revenue breakdown
+      revenue: {
+        total: totalRevenue,
+        advance: advanceRevenue,
+        remaining: remainingRevenue,
+        pending: pendingRevenue,
+      },
+
+      // Recent bookings for dashboard
+      recentBookings: recentBookings,
+
+      // Service category stats for dashboard chart
+      serviceCategoryStats: serviceCategoryStats,
+    };
+
+    console.log('✅ Analytics prepared successfully');
 
     return res.status(200).json({
       success: true,
       message: "Analytics fetched successfully",
-      data: {
-        overview: {
-          totalVendors,
-          totalUsers,
-          totalBookings,
-          totalServices,
-          totalRevenue,
-        },
-        vendors: {
-          total: totalVendors,
-          pending: pendingVendors,
-          verified: verifiedVendors,
-        },
-        bookings: {
-          total: totalBookings,
-          pending: pendingBookings,
-          completed: completedBookings,
-        },
-        recentBookings,
-        serviceCategoryStats,
-      },
+      data: analyticsData,
     });
 
   } catch (error) {
-    console.error("Get analytics error:", error);
+    console.error("❌ Get analytics error:", error);
     return res.status(500).json({
       success: false,
       message: "Server error",
@@ -566,375 +887,20 @@ const getAnalyticsController = async (req, res) => {
   }
 };
 
-// ====================================
-// 🆕 ADD THESE FUNCTIONS TO YOUR EXISTING adminControllers.js
-// ====================================
-// Add after your existing getAllUsersController
-
-// @desc    Get single user details with bookings
-// @route   GET /api/v1/admin/users/:id
-// @access  Private (Admin)
-const getUserDetailsController = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const user = await userSignupModel.findById(id).select("-password");
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    // Get user's bookings
-    const bookings = await bookingModel
-      .find({ user: id })
-      .populate("service", "companyName serviceCategory")
-      .populate("vendor", "buisnessName email phone")
-      .sort({ createdAt: -1 });
-
-    return res.status(200).json({
-      success: true,
-      message: "User details fetched successfully",
-      data: {
-        user,
-        bookings,
-        bookingStats: {
-          total: bookings.length,
-          completed: bookings.filter(b => b.bookingStatus === "completed").length,
-          cancelled: bookings.filter(b => b.bookingStatus === "cancelled").length,
-          pending: bookings.filter(b => b.bookingStatus === "pending").length,
-        },
-      },
-    });
-  } catch (error) {
-    console.error("Get user details error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: error.message || error,
-    });
-  }
-};
-
-// @desc    Delete user
-// @route   DELETE /api/v1/admin/users/:id
-// @access  Private (Admin)
-const deleteUserController = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const user = await userSignupModel.findById(id);
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    // Check if user has active bookings
-    const activeBookings = await bookingModel.countDocuments({
-      user: id,
-      bookingStatus: { $in: ["pending", "approved", "payment_completed", "confirmed", "in_progress"] },
-    });
-
-    if (activeBookings > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot delete user. User has ${activeBookings} active booking(s)`,
-      });
-    }
-
-    // Delete user
-    await userSignupModel.findByIdAndDelete(id);
-
-    return res.status(200).json({
-      success: true,
-      message: "User deleted successfully",
-    });
-  } catch (error) {
-    console.error("Delete user error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: error.message || error,
-    });
-  }
-};
-
-// ====================================
-// 🆕 VENDOR MANAGEMENT - ADDITIONAL FUNCTIONS
-// ====================================
-// Add after your existing getAllVendorsController
-
-// @desc    Get single vendor details with services and bookings
-// @route   GET /api/v1/admin/vendors/:id
-// @access  Private (Admin)
-const getVendorDetailsController = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const vendor = await signupModel.findById(id).select("-password -otp");
-
-    if (!vendor) {
-      return res.status(404).json({
-        success: false,
-        message: "Vendor not found",
-      });
-    }
-
-    // Get vendor's services
-    const services = await vendorServicesModel
-      .find({ vendorId: id })
-      .sort({ createdAt: -1 });
-
-    // Get vendor's bookings
-    const bookings = await bookingModel
-      .find({ vendor: id })
-      .populate("user", "name email phone")
-      .populate("service", "companyName serviceCategory")
-      .sort({ createdAt: -1 });
-
-    // Calculate revenue
-    const revenue = {
-      total: 0,
-      advance: 0,
-      remaining: 0,
-    };
-
-    bookings.forEach(booking => {
-      if (booking.payment?.advancePaid) {
-        revenue.advance += booking.advancePayment || 0;
-        revenue.total += booking.advancePayment || 0;
-      }
-      if (booking.payment?.remainingPaid) {
-        revenue.remaining += booking.remainingPayment || 0;
-        revenue.total += booking.remainingPayment || 0;
-      }
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "Vendor details fetched successfully",
-      data: {
-        vendor,
-        services,
-        bookings,
-        stats: {
-          totalServices: services.length,
-          activeServices: services.filter(s => s.isActive).length,
-          totalBookings: bookings.length,
-          completedBookings: bookings.filter(b => b.bookingStatus === "completed").length,
-          revenue,
-        },
-      },
-    });
-  } catch (error) {
-    console.error("Get vendor details error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: error.message || error,
-    });
-  }
-};
-
-// @desc    Delete vendor and all associated services
-// @route   DELETE /api/v1/admin/vendors/:id
-// @access  Private (Admin)
-const deleteVendorController = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const vendor = await signupModel.findById(id);
-
-    if (!vendor) {
-      return res.status(404).json({
-        success: false,
-        message: "Vendor not found",
-      });
-    }
-
-    // Check for active bookings
-    const activeBookings = await bookingModel.countDocuments({
-      vendor: id,
-      bookingStatus: { $in: ["pending", "approved", "payment_completed", "confirmed", "in_progress"] },
-    });
-
-    if (activeBookings > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot delete vendor. Vendor has ${activeBookings} active booking(s)`,
-      });
-    }
-
-    // Delete vendor's services
-    await vendorServicesModel.deleteMany({ vendorId: id });
-
-    // Delete vendor
-    await signupModel.findByIdAndDelete(id);
-
-    return res.status(200).json({
-      success: true,
-      message: "Vendor and associated services deleted successfully",
-    });
-  } catch (error) {
-    console.error("Delete vendor error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: error.message || error,
-    });
-  }
-};
-
-// @desc    Delete vendor service
-// @route   DELETE /api/v1/admin/vendors/:vendorId/services/:serviceId
-// @access  Private (Admin)
-const deleteVendorServiceController = async (req, res) => {
-  try {
-    const { vendorId, serviceId } = req.params;
-
-    const service = await vendorServicesModel.findOne({
-      _id: serviceId,
-      vendorId: vendorId,
-    });
-
-    if (!service) {
-      return res.status(404).json({
-        success: false,
-        message: "Service not found",
-      });
-    }
-
-    // Check for active bookings
-    const activeBookings = await bookingModel.countDocuments({
-      service: serviceId,
-      bookingStatus: { $in: ["pending", "approved", "payment_completed", "confirmed", "in_progress"] },
-    });
-
-    if (activeBookings > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot delete service. Service has ${activeBookings} active booking(s)`,
-      });
-    }
-
-    await vendorServicesModel.findByIdAndDelete(serviceId);
-
-    return res.status(200).json({
-      success: true,
-      message: "Service deleted successfully",
-    });
-  } catch (error) {
-    console.error("Delete vendor service error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: error.message || error,
-    });
-  }
-};
-
-// ====================================
-// 🆕 BOOKING MANAGEMENT - ADDITIONAL FUNCTIONS
-// ====================================
-// Add after your existing getPendingBookingsController
-
-// @desc    Approve or reject booking
-// @route   PUT /api/v1/admin/bookings/:id/approve
-// @access  Private (Admin)
-const approveRejectBookingController = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { action, rejectionReason, adminNotes, adminId } = req.body;
-
-    if (!action || !["approve", "reject"].includes(action)) {
-      return res.status(400).json({
-        success: false,
-        message: "Valid action (approve/reject) is required",
-      });
-    }
-
-    const booking = await bookingModel.findById(id);
-
-    if (!booking) {
-      return res.status(404).json({
-        success: false,
-        message: "Booking not found",
-      });
-    }
-
-    if (action === "approve") {
-      booking.bookingStatus = "approved";
-      booking.adminApproval = {
-        approved: true,
-        approvedBy: adminId,
-        approvedAt: new Date(),
-        adminNotes: adminNotes || "",
-      };
-    } else {
-      if (!rejectionReason) {
-        return res.status(400).json({
-          success: false,
-          message: "Rejection reason is required",
-        });
-      }
-
-      booking.bookingStatus = "rejected";
-      booking.adminApproval = {
-        approved: false,
-        approvedBy: adminId,
-        approvedAt: new Date(),
-        rejectionReason,
-        adminNotes: adminNotes || "",
-      };
-    }
-
-    await booking.save();
-
-    // TODO: Send email notification to user
-
-    return res.status(200).json({
-      success: true,
-      message: `Booking ${action === "approve" ? "approved" : "rejected"} successfully`,
-      data: booking,
-    });
-  } catch (error) {
-    console.error("Approve/reject booking error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: error.message || error,
-    });
-  }
-};
-
 module.exports = {
-  // Authentication
   adminLoginController,
   createAdminController,
-  
-  // Vendor Management
   getAllVendorsController,
-  getVendorDetailsController,        // 🆕 NEW
+  getVendorDetailsController,
   verifyVendorController,
-  deleteVendorController,            // 🆕 NEW
-  deleteVendorServiceController,     // 🆕 NEW
   rateVendorController,
-  
-  // User Management
+  deleteVendorController,
+  deleteVendorServiceController,
   getAllUsersController,
-  getUserDetailsController,          // 🆕 NEW
-  deleteUserController,              // 🆕 NEW
-  
-  // Booking Management
+  getUserDetailsController,
+  deleteUserController,
   getAllBookingsController,
   getPendingBookingsController,
-  approveRejectBookingController,    // 🆕 NEW
-  
-  // Analytics
+  approveRejectBookingController,
   getAnalyticsController,
 };

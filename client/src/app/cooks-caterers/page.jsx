@@ -127,7 +127,7 @@ export default function ProductionHousesPage() {
       
       // Build query string
       const queryParams = new URLSearchParams({
-        serviceCategory: 'Photographers',
+        serviceCategory: 'Cooks & Caterers',
         ...(filters.availability !== 'all' && { availability: filters.availability }),
         ...(filters.location !== 'all' && { location: filters.location }),
         ...(filters.minRating > 0 && { minRating: filters.minRating }),
@@ -226,10 +226,10 @@ export default function ProductionHousesPage() {
       <div className="bg-cyan-600 text-white py-16 px-4">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Photography Services in Bangladesh
+            Cooks & Caterers Services in Bangladesh
           </h1>
           <p className="text-cyan-100 text-lg max-w-2xl">
-            Discover and book premium photographer services in Dhaka for your next project.
+            Discover and book premium Cooks & Caterers services in Dhaka for your next project.
           </p>
         </div>
       </div>
@@ -441,7 +441,7 @@ export default function ProductionHousesPage() {
           </div>
         </div>
 
-        {/* Photography Services Grid */}
+        {/* Cooks & Caterers Services Grid */}
         {filteredHouses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredHouses.map((house) => (
@@ -459,7 +459,7 @@ export default function ProductionHousesPage() {
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">No Results Found</h3>
             <p className="text-gray-600 mb-6">
-              We couldn't find any photographer services matching your criteria.
+              We couldn't find any Cooks & Caterers services matching your criteria.
             </p>
             <button
               onClick={resetFilters}

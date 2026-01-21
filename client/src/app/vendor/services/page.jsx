@@ -45,7 +45,7 @@ export default function MyServices() {
   const fetchMyServices = async () => {
     try {
       const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user"));
+      const user = JSON.parse(localStorage.getItem("vendorData"));
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API}/services/vendor/${user._id}`,

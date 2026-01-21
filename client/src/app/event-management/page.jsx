@@ -2,9 +2,12 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Star, CheckCircle, XCircle, DollarSign, Search, Filter, X, Loader2, ArrowLeft } from 'lucide-react';
+import { 
+  MapPin, Star, CheckCircle, XCircle, DollarSign, Search, 
+  Filter, X, Loader2, Shield 
+} from 'lucide-react';
 
-// Production House Card Component
+// Production House Card Component with Verified Badge
 const ProductionHouseCard = ({ house, onViewDetails }) => {
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
@@ -15,6 +18,7 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
           className="w-full h-full object-cover"
         />
         
+        {/* Availability Badge */}
         <div className="absolute top-4 right-4">
           {house.available || house.availability === 'Available' ? (
             <span className="flex items-center gap-1 bg-green-500 text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-lg">
@@ -29,6 +33,17 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
           )}
         </div>
 
+        {/* 🎯 VERIFIED BADGE - Top Left */}
+        {house.isVerified && (
+          <div className="absolute top-4 left-4">
+            <span className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-lg">
+              <Shield size={16} />
+              Verified
+            </span>
+          </div>
+        )}
+
+        {/* Rating Badge */}
         <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
           <Star size={16} className="fill-yellow-400 text-yellow-400" />
           <span className="font-semibold text-gray-900">{house.rating || 0}</span>
@@ -37,9 +52,15 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
       </div>
 
       <div className="p-5">
-        <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">
-          {house.companyName}
-        </h3>
+        <div className="flex items-start justify-between mb-2">
+          <h3 className="text-xl font-bold text-gray-900 line-clamp-1 flex-1">
+            {house.companyName}
+          </h3>
+          {/* 🎯 Small Verified Icon Next to Name */}
+          {house.isVerified && (
+            <Shield size={20} className="text-blue-600 flex-shrink-0 ml-2" title="Verified Vendor" />
+          )}
+        </div>
 
         <div className="flex items-center gap-2 text-gray-600 mb-3">
           <MapPin size={18} className="text-cyan-600" />
@@ -91,7 +112,8 @@ export default function ProductionHousesPage() {
     priceRange: [0, 500000],
     location: 'all',
     specialty: 'all',
-    minRating: 0
+    minRating: 0,
+    verified: 'all' // 🆕 NEW - Verified filter
   });
 
   // Fetch services from API
@@ -145,17 +167,23 @@ export default function ProductionHousesPage() {
   const locations = ['all', ...new Set(services.map(h => h.location).filter(Boolean))];
   const allSpecialties = ['all', ...new Set(services.flatMap(h => h.specialties || []))];
 
-  // Filter logic (client-side filtering for specialty)
+  // Filter logic (client-side filtering for specialty and verified)
   const filteredHouses = useMemo(() => {
     return services.filter(house => {
       const matchesSpecialty = filters.specialty === 'all' || 
                               house.specialties?.includes(filters.specialty);
-      return matchesSpecialty;
+      
+      // 🆕 NEW - Verified filter
+      const matchesVerified = filters.verified === 'all' || 
+                             (filters.verified === 'verified' && house.isVerified) ||
+                             (filters.verified === 'unverified' && !house.isVerified);
+      
+      return matchesSpecialty && matchesVerified;
     });
-  }, [services, filters.specialty]);
+  }, [services, filters.specialty, filters.verified]);
 
   const handleViewDetails = (identifier) => {
-    router.push(`/event-management/${identifier}`);
+    router.push(`/production-houses/${identifier}`);
   };
 
   const resetFilters = () => {
@@ -164,7 +192,8 @@ export default function ProductionHousesPage() {
       priceRange: [0, 500000],
       location: 'all',
       specialty: 'all',
-      minRating: 0
+      minRating: 0,
+      verified: 'all'
     });
     setSearchQuery('');
   };
@@ -176,6 +205,7 @@ export default function ProductionHousesPage() {
     if (filters.location !== 'all') count++;
     if (filters.specialty !== 'all') count++;
     if (filters.minRating > 0) count++;
+    if (filters.verified !== 'all') count++; // 🆕 NEW
     return count;
   };
 
@@ -184,7 +214,7 @@ export default function ProductionHousesPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-cyan-50">
         <div className="text-center">
           <Loader2 className="w-16 h-16 animate-spin text-cyan-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading production houses...</p>
+          <p className="text-gray-600">Loading event-management services...</p>
         </div>
       </div>
     );
@@ -195,13 +225,6 @@ export default function ProductionHousesPage() {
       {/* Header */}
       <div className="bg-cyan-600 text-white py-16 px-4">
         <div className="max-w-7xl mx-auto">
-           <button
-            onClick={() => router.push('/')}
-            className="flex items-center gap-2 text-lg hover:text-black font-semibold mb-4"
-          >
-            <ArrowLeft size={20} />
-            Back to Home Page
-          </button>
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             Event Management Services in Bangladesh
           </h1>
@@ -276,6 +299,22 @@ export default function ProductionHousesPage() {
                   <option value="all">All Studios</option>
                   <option value="available">Available Only</option>
                   <option value="booked">Booked Only</option>
+                </select>
+              </div>
+
+              {/* 🆕 NEW - Verified Filter */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Verification Status
+                </label>
+                <select
+                  value={filters.verified}
+                  onChange={(e) => setFilters({ ...filters, verified: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                >
+                  <option value="all">All Vendors</option>
+                  <option value="verified">Verified Only</option>
+                  <option value="unverified">Unverified Only</option>
                 </select>
               </div>
 
@@ -370,7 +409,7 @@ export default function ProductionHousesPage() {
 
         {/* Stats Bar */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
             <div>
               <div className="text-3xl font-bold text-cyan-600 mb-1">
                 {filteredHouses.length}
@@ -386,6 +425,12 @@ export default function ProductionHousesPage() {
               <div className="text-gray-600 text-sm">Available Now</div>
             </div>
             <div>
+              <div className="text-3xl font-bold text-blue-600 mb-1">
+                {filteredHouses.filter(h => h.isVerified).length}
+              </div>
+              <div className="text-gray-600 text-sm">Verified Vendors</div>
+            </div>
+            <div>
               <div className="text-3xl font-bold text-yellow-600 mb-1">
                 {filteredHouses.length > 0 
                   ? (filteredHouses.reduce((sum, h) => sum + (h.rating || 0), 0) / filteredHouses.length).toFixed(1)
@@ -396,7 +441,7 @@ export default function ProductionHousesPage() {
           </div>
         </div>
 
-        {/* Production Houses Grid */}
+        {/* Event Management Services Grid */}
         {filteredHouses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredHouses.map((house) => (
@@ -414,7 +459,7 @@ export default function ProductionHousesPage() {
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">No Results Found</h3>
             <p className="text-gray-600 mb-6">
-              We couldn't find any production houses matching your criteria.
+              We couldn't find any event management services matching your criteria.
             </p>
             <button
               onClick={resetFilters}

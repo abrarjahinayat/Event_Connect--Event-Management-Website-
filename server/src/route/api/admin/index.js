@@ -55,7 +55,7 @@ router.delete("/users/:id", deleteUserController);                         // �
 // ====================================
 router.get("/bookings", getAllBookingsController);
 router.get("/bookings/pending", getPendingBookingsController);
-router.put("/bookings/:id/approve", approveRejectBookingController);       // 🆕 UPDATED - Now from adminControllers
+router.put("/bookings/:bookingId/approve", approveRejectBookingController);      // 🆕 UPDATED - Now from adminControllers
 
 // ====================================
 // ANALYTICS

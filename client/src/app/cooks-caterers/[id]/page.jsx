@@ -557,7 +557,7 @@ export default function ProductionHouseDetailsPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Service Not Found</h1>
           <button
-            onClick={() => router.push('/event-management')}
+            onClick={() => router.push('/cooks-caterers')}
             className="bg-cyan-600 text-white px-6 py-3 rounded-lg hover:bg-cyan-700"
           >
             Back to Listings
@@ -572,7 +572,7 @@ export default function ProductionHouseDetailsPage() {
       <div className="bg-white">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <button
-            onClick={() => router.push('/event-management')}
+            onClick={() => router.push('/cooks-caterers')}
             className="flex items-center gap-2 text-cyan-600 hover:text-cyan-700 font-semibold mb-4"
           >
             <ArrowLeft size={20} />
