@@ -32,7 +32,7 @@ const signupSchema = new mongoose.Schema(
       required: false,
     },
 
-    // ✅ NEW: Vendor Verification Fields
+    // ✅ Vendor Verification Fields
     businessRegistrationNumber: {
       type: String,
       required: [true, "Business registration number is required"],
@@ -48,11 +48,11 @@ const signupSchema = new mongoose.Schema(
     // Verification Documents
     verificationDocuments: {
       tradeLicense: {
-        type: String, // URL of uploaded file
+        type: String,
         required: [true, "Trade license is required"],
       },
       nidDocument: {
-        type: String, // URL of uploaded file
+        type: String,
         required: [true, "NID document is required"],
       },
     },
@@ -70,19 +70,24 @@ const signupSchema = new mongoose.Schema(
     verifiedAt: {
       type: Date,
     },
-    // Add to signup.model.js after existing fields
+    
+    // ✅ FIXED: Admin Rating (Simplified to Number)
     adminRating: {
-      rating: {
-        type: Number,
-        min: 1,
-        max: 5,
-        default: 3,
-      },
-      featured: {
-        type: Boolean,
-        default: false,
-      },
-      updatedAt: Date,
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5
+    },
+    adminRatingComment: {
+      type: String,
+      default: ''
+    },
+    ratedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Admin'
+    },
+    ratedAt: {
+      type: Date
     },
 
     // Admin Review Details
@@ -100,7 +105,28 @@ const signupSchema = new mongoose.Schema(
       adminNotes: String,
     },
 
-    // OTP & Email Verification (existing)
+    // Verification Tracking
+    verifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Admin'
+    },
+    rejectedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Admin'
+    },
+    rejectedAt: {
+      type: Date
+    },
+    rejectionReason: {
+      type: String,
+      default: ''
+    },
+    adminNotes: {
+      type: String,
+      default: ''
+    },
+
+    // OTP & Email Verification
     otp: {
       type: Number,
     },

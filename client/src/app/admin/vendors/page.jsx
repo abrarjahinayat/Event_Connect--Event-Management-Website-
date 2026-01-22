@@ -505,19 +505,29 @@ export default function AdminVendorsPage() {
                     </td>
                     {/* Add this column in table */}
                     <td className="px-6 py-4">
-                      {vendor.adminRating > 0 ? (
-                        <div className="flex items-center gap-2">
-                          <Star
-                            size={16}
-                            className="fill-yellow-400 text-yellow-400"
-                          />
-                          <span className="font-semibold text-gray-900">
-                            {vendor.adminRating}/5
+                      {(() => {
+                        // ✅ Safe rating extraction - handles both number and object
+                        const rating =
+                          typeof vendor.adminRating === "object"
+                            ? vendor.adminRating?.rating || 0
+                            : vendor.adminRating || 0;
+
+                        return rating > 0 ? (
+                          <div className="flex items-center gap-2">
+                            <Star
+                              size={16}
+                              className="fill-yellow-400 text-yellow-400"
+                            />
+                            <span className="font-semibold text-gray-900">
+                              {rating}/5
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-sm">
+                            Not rated
                           </span>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 text-sm">Not rated</span>
-                      )}
+                        );
+                      })()}
                     </td>
                   </tr>
                 ))
@@ -680,7 +690,11 @@ export default function AdminVendorsPage() {
                 <button
                   onClick={() => {
                     setRatingModal(true);
-                    setRatingValue(selectedVendor.vendor.adminRating || 0);
+                    setRatingValue(
+                      typeof selectedVendor.vendor.adminRating === "object"
+                        ? selectedVendor.vendor.adminRating?.rating || 0
+                        : selectedVendor.vendor.adminRating || 0,
+                    );
                     setRatingComment(
                       selectedVendor.vendor.adminRatingComment || "",
                     );
@@ -688,9 +702,16 @@ export default function AdminVendorsPage() {
                   className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
                   <Star size={20} />
-                  {selectedVendor.vendor.adminRating > 0
-                    ? `Update Rating (${selectedVendor.vendor.adminRating}/5)`
-                    : "Rate This Vendor"}
+                  {(() => {
+                    const rating =
+                      typeof selectedVendor.vendor.adminRating === "object"
+                        ? selectedVendor.vendor.adminRating?.rating || 0
+                        : selectedVendor.vendor.adminRating || 0;
+
+                    return rating > 0
+                      ? `Update Rating (${rating}/5)`
+                      : "Rate This Vendor";
+                  })()}
                 </button>
               </div>
 

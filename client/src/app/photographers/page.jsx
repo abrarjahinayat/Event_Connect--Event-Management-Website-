@@ -4,11 +4,16 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   MapPin, Star, CheckCircle, XCircle, DollarSign, Search, 
-  Filter, X, Loader2, Shield 
+  Filter, X, Loader2, Shield, Award
 } from 'lucide-react';
 
-// Production House Card Component with Verified Badge
+// Production House Card Component with Admin Rating
 const ProductionHouseCard = ({ house, onViewDetails }) => {
+  // 🎯 Get admin rating from vendorId (populated vendor data)
+  const adminRating = typeof house.vendorId?.adminRating === 'object' 
+    ? (house.vendorId?.adminRating?.rating || 0)
+    : (house.vendorId?.adminRating || house.adminRating || 0); 
+
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
       <div className="relative h-56 overflow-hidden">
@@ -18,7 +23,7 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
           className="w-full h-full object-cover"
         />
         
-        {/* Availability Badge */}
+        {/* Availability Badge - Top Right */}
         <div className="absolute top-4 right-4">
           {house.available || house.availability === 'Available' ? (
             <span className="flex items-center gap-1 bg-green-500 text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-lg">
@@ -43,7 +48,17 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
           </div>
         )}
 
-        {/* Rating Badge */}
+        {/* 🆕 ADMIN RATING BADGE - Below Verified Badge */}
+        {adminRating > 0 && (
+          <div className={`absolute ${house.isVerified ? 'top-16' : 'top-4'} left-4`}>
+            <span className="flex items-center gap-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-lg">
+              <Award size={16} />
+              Admin: {adminRating}/5
+            </span>
+          </div>
+        )}
+
+        {/* User Rating Badge - Bottom Left */}
         <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
           <Star size={16} className="fill-yellow-400 text-yellow-400" />
           <span className="font-semibold text-gray-900">{house.rating || 0}</span>
@@ -56,10 +71,18 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
           <h3 className="text-xl font-bold text-gray-900 line-clamp-1 flex-1">
             {house.companyName}
           </h3>
-          {/* 🎯 Small Verified Icon Next to Name */}
-          {house.isVerified && (
-            <Shield size={20} className="text-blue-600 flex-shrink-0 ml-2" title="Verified Vendor" />
-          )}
+          {/* Icons Next to Name */}
+          <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+            {house.isVerified && (
+              <Shield size={20} className="text-blue-600" title="Verified Vendor" />
+            )}
+            {adminRating > 0 && (
+              <div className="flex items-center gap-0.5" title={`Admin Rating: ${adminRating}/5`}>
+                <Award size={18} className="text-yellow-500" />
+                <span className="text-sm font-bold text-yellow-600">{adminRating}</span>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2 text-gray-600 mb-3">
@@ -107,13 +130,15 @@ export default function ProductionHousesPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState('adminRating'); // 🆕 Default sort by admin rating
   const [filters, setFilters] = useState({
     availability: 'all',
     priceRange: [0, 500000],
     location: 'all',
     specialty: 'all',
     minRating: 0,
-    verified: 'all' // 🆕 NEW - Verified filter
+    verified: 'all',
+    minAdminRating: 0 // 🆕 Admin rating filter
   });
 
   // Fetch services from API
@@ -143,6 +168,8 @@ export default function ProductionHousesPage() {
       const data = await response.json();
       
       if (data.success) {
+        console.log('✅ Services loaded:', data.data.length);
+        console.log('📊 First service sample:', data.data[0]);
         setServices(data.data);
       } else {
         console.error('Failed to fetch services:', data.message);
@@ -167,20 +194,51 @@ export default function ProductionHousesPage() {
   const locations = ['all', ...new Set(services.map(h => h.location).filter(Boolean))];
   const allSpecialties = ['all', ...new Set(services.flatMap(h => h.specialties || []))];
 
-  // Filter logic (client-side filtering for specialty and verified)
+  // 🎯 Helper function to get admin rating
+  const getAdminRating = (house) => {
+    if (typeof house.vendorId?.adminRating === 'object') {
+      return house.vendorId?.adminRating?.rating || 0;
+    }
+    return house.vendorId?.adminRating || house.adminRating || 0;
+  };
+
+  // Filter and sort logic
   const filteredHouses = useMemo(() => {
-    return services.filter(house => {
+    let filtered = services.filter(house => {
       const matchesSpecialty = filters.specialty === 'all' || 
                               house.specialties?.includes(filters.specialty);
       
-      // 🆕 NEW - Verified filter
       const matchesVerified = filters.verified === 'all' || 
                              (filters.verified === 'verified' && house.isVerified) ||
                              (filters.verified === 'unverified' && !house.isVerified);
       
-      return matchesSpecialty && matchesVerified;
+      // 🆕 Admin rating filter
+      const adminRating = getAdminRating(house);
+      const matchesAdminRating = filters.minAdminRating === 0 || adminRating >= filters.minAdminRating;
+      
+      return matchesSpecialty && matchesVerified && matchesAdminRating;
     });
-  }, [services, filters.specialty, filters.verified]);
+
+    // 🎯 SORTING
+    filtered.sort((a, b) => {
+      switch(sortBy) {
+        case 'adminRating':
+          return getAdminRating(b) - getAdminRating(a);
+        case 'userRating':
+          return (b.rating || 0) - (a.rating || 0);
+        case 'priceLow':
+          return (a.startingPrice || 0) - (b.startingPrice || 0);
+        case 'priceHigh':
+          return (b.startingPrice || 0) - (a.startingPrice || 0);
+        case 'newest':
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [services, filters.specialty, filters.verified, filters.minAdminRating, sortBy]);
 
   const handleViewDetails = (identifier) => {
     router.push(`/production-houses/${identifier}`);
@@ -193,9 +251,11 @@ export default function ProductionHousesPage() {
       location: 'all',
       specialty: 'all',
       minRating: 0,
-      verified: 'all'
+      verified: 'all',
+      minAdminRating: 0
     });
     setSearchQuery('');
+    setSortBy('adminRating');
   };
 
   const activeFiltersCount = () => {
@@ -205,7 +265,8 @@ export default function ProductionHousesPage() {
     if (filters.location !== 'all') count++;
     if (filters.specialty !== 'all') count++;
     if (filters.minRating > 0) count++;
-    if (filters.verified !== 'all') count++; // 🆕 NEW
+    if (filters.verified !== 'all') count++;
+    if (filters.minAdminRating > 0) count++;
     return count;
   };
 
@@ -214,7 +275,7 @@ export default function ProductionHousesPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-cyan-50">
         <div className="text-center">
           <Loader2 className="w-16 h-16 animate-spin text-cyan-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading event-management services...</p>
+          <p className="text-gray-600">Loading photographers...</p>
         </div>
       </div>
     );
@@ -226,16 +287,16 @@ export default function ProductionHousesPage() {
       <div className="bg-cyan-600 text-white py-16 px-4">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Photography Services in Bangladesh
+            Photographers in Bangladesh
           </h1>
           <p className="text-cyan-100 text-lg max-w-2xl">
-            Discover and book premium photographer services in Dhaka for your next project.
+            Discover and book premium photographers verified by our admin team.
           </p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Search and Filter Bar */}
+        {/* Search, Sort, and Filter Bar */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Search Bar */}
@@ -258,6 +319,19 @@ export default function ProductionHousesPage() {
               )}
             </div>
 
+            {/* 🆕 Sort Dropdown */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-6 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent font-semibold text-gray-700"
+            >
+              <option value="adminRating">🏆 Admin Rating (High)</option>
+              <option value="userRating">⭐ User Rating (High)</option>
+              <option value="priceLow">💰 Price: Low to High</option>
+              <option value="priceHigh">💰 Price: High to Low</option>
+              <option value="newest">🆕 Newest First</option>
+            </select>
+
             {/* Filter Toggle Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -273,7 +347,7 @@ export default function ProductionHousesPage() {
             </button>
 
             {/* Reset Filters Button */}
-            {(activeFiltersCount() > 0 || searchQuery) && (
+            {(activeFiltersCount() > 0 || searchQuery || sortBy !== 'adminRating') && (
               <button
                 onClick={resetFilters}
                 className="px-6 py-3 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-semibold transition-colors"
@@ -302,7 +376,7 @@ export default function ProductionHousesPage() {
                 </select>
               </div>
 
-              {/* 🆕 NEW - Verified Filter */}
+              {/* Verified Filter */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Verification Status
@@ -315,6 +389,23 @@ export default function ProductionHousesPage() {
                   <option value="all">All Vendors</option>
                   <option value="verified">Verified Only</option>
                   <option value="unverified">Unverified Only</option>
+                </select>
+              </div>
+
+              {/* 🆕 Admin Rating Filter */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Minimum Admin Rating
+                </label>
+                <select
+                  value={filters.minAdminRating}
+                  onChange={(e) => setFilters({ ...filters, minAdminRating: parseFloat(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                >
+                  <option value="0">Any Rating</option>
+                  <option value="3">3+ Stars</option>
+                  <option value="4">4+ Stars</option>
+                  <option value="5">5 Stars Only</option>
                 </select>
               </div>
 
@@ -354,8 +445,25 @@ export default function ProductionHousesPage() {
                 </select>
               </div>
 
+              {/* User Rating Filter */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Minimum User Rating
+                </label>
+                <select
+                  value={filters.minRating}
+                  onChange={(e) => setFilters({ ...filters, minRating: parseFloat(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                >
+                  <option value="0">Any Rating</option>
+                  <option value="4.0">4.0+ Stars</option>
+                  <option value="4.5">4.5+ Stars</option>
+                  <option value="4.8">4.8+ Stars</option>
+                </select>
+              </div>
+
               {/* Price Range Filter */}
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 lg:col-span-3">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Price Range: ৳{filters.priceRange[0].toLocaleString()} - ৳{filters.priceRange[1].toLocaleString()}
                 </label>
@@ -385,23 +493,6 @@ export default function ProductionHousesPage() {
                     className="flex-1"
                   />
                 </div>
-              </div>
-
-              {/* Minimum Rating Filter */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Minimum Rating
-                </label>
-                <select
-                  value={filters.minRating}
-                  onChange={(e) => setFilters({ ...filters, minRating: parseFloat(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                >
-                  <option value="0">Any Rating</option>
-                  <option value="4.0">4.0+ Stars</option>
-                  <option value="4.5">4.5+ Stars</option>
-                  <option value="4.8">4.8+ Stars</option>
-                </select>
               </div>
             </div>
           )}
@@ -433,15 +524,15 @@ export default function ProductionHousesPage() {
             <div>
               <div className="text-3xl font-bold text-yellow-600 mb-1">
                 {filteredHouses.length > 0 
-                  ? (filteredHouses.reduce((sum, h) => sum + (h.rating || 0), 0) / filteredHouses.length).toFixed(1)
+                  ? (filteredHouses.reduce((sum, h) => sum + getAdminRating(h), 0) / filteredHouses.length).toFixed(1)
                   : '0.0'}
               </div>
-              <div className="text-gray-600 text-sm">Average Rating</div>
+              <div className="text-gray-600 text-sm">Avg Admin Rating</div>
             </div>
           </div>
         </div>
 
-        {/* Photography Services Grid */}
+        {/* Photographers Grid */}
         {filteredHouses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredHouses.map((house) => (
@@ -459,7 +550,7 @@ export default function ProductionHousesPage() {
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">No Results Found</h3>
             <p className="text-gray-600 mb-6">
-              We couldn't find any photographer services matching your criteria.
+              We couldn't find any photographers matching your criteria.
             </p>
             <button
               onClick={resetFilters}

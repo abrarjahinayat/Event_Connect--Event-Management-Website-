@@ -15,8 +15,8 @@ const AdminDashboardLayout = ({ children }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
 
-  // ✅ FIX: Check if current page is login page
-  const isLoginPage = pathname === '/admin/login';
+  // ✅ FIX: Check if current page is login page (correct route)
+  const isLoginPage = pathname === '/admin-login';
 
   useEffect(() => {
     // ✅ Skip auth check if it's login page
@@ -25,16 +25,45 @@ const AdminDashboardLayout = ({ children }) => {
       return;
     }
 
-    // Check if admin is logged in
+    // 🎯 FIX: SAFE localStorage handling
+    console.log('🔍 Checking admin authentication...');
+    
     const token = localStorage.getItem('adminToken');
-    const adminData = localStorage.getItem('adminData');
+    const adminDataStr = localStorage.getItem('adminData');
 
-    if (!token || !adminData) {
-      router.push('/admin-login');  // NEW
+    console.log('Token exists:', !!token);
+    console.log('AdminData exists:', !!adminDataStr);
+    console.log('AdminData raw:', adminDataStr);
+
+    // Check token
+    if (!token || token === 'undefined') {
+      console.error('❌ No valid admin token');
+      router.push('/admin-login'); // ✅ FIXED ROUTE
       return;
     }
 
-    setAdmin(JSON.parse(adminData));
+    // 🎯 CRITICAL FIX: Check adminData before parsing
+    if (!adminDataStr || adminDataStr === 'undefined') {
+      console.error('❌ No valid admin data');
+      router.push('/admin-login'); // ✅ FIXED ROUTE
+      return;
+    }
+
+    // 🎯 SAFE JSON PARSE with try-catch
+    try {
+      const parsedAdmin = JSON.parse(adminDataStr);
+      console.log('✅ Admin parsed successfully:', parsedAdmin);
+      setAdmin(parsedAdmin);
+    } catch (error) {
+      console.error('❌ Failed to parse admin data:', error);
+      console.error('Data that failed:', adminDataStr);
+      // Clear corrupt data and redirect
+      localStorage.removeItem('adminData');
+      localStorage.removeItem('adminToken');
+      router.push('/admin-login'); // ✅ FIXED ROUTE
+      return;
+    }
+
     setLoading(false);
   }, [router, isLoginPage, pathname]);
 
@@ -72,9 +101,10 @@ const AdminDashboardLayout = ({ children }) => {
   ];
 
   const handleLogout = () => {
+    console.log('🚪 Logging out...');
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminData');
-    router.push('/admin/login');
+    router.push('/admin-login'); // ✅ FIXED ROUTE
   };
 
   const handleNavigation = (item) => {
@@ -122,13 +152,13 @@ const AdminDashboardLayout = ({ children }) => {
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center font-bold text-lg shadow-lg">
-              {admin.name?.charAt(0).toUpperCase()}
+              {admin?.name?.charAt(0)?.toUpperCase() || 'A'}
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-white">{admin.name}</h3>
+              <h3 className="font-semibold text-white">{admin?.name || 'Admin'}</h3>
               <div className="flex items-center gap-2">
                 <span className="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full border border-cyan-500/30">
-                  {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                  {admin?.role === 'super_admin' ? 'Super Admin' : 'Admin'}
                 </span>
               </div>
             </div>
@@ -140,7 +170,7 @@ const AdminDashboardLayout = ({ children }) => {
           <ul className="space-y-1">
             {menuItems.map((item) => {
               const Icon = item.icon;
-              const isActive = activeTab === item.id;
+              const isActive = pathname === item.path;
               
               return (
                 <li key={item.id}>
@@ -192,10 +222,10 @@ const AdminDashboardLayout = ({ children }) => {
         <div className="bg-white shadow-sm px-6 py-4 hidden lg:flex items-center justify-between border-b border-gray-200">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 capitalize">
-              {menuItems.find(item => item.id === activeTab)?.label || 'Dashboard'}
+              {menuItems.find(item => item.path === pathname)?.label || 'Dashboard'}
             </h2>
             <p className="text-gray-600 text-sm mt-1">
-              Welcome back, {admin.name}!
+              Welcome back, {admin?.name || 'Admin'}!
             </p>
           </div>
 
@@ -209,12 +239,12 @@ const AdminDashboardLayout = ({ children }) => {
             {/* Admin Info */}
             <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-600 to-blue-600 flex items-center justify-center text-white font-bold shadow-lg">
-                {admin.name?.charAt(0).toUpperCase()}
+                {admin?.name?.charAt(0)?.toUpperCase() || 'A'}
               </div>
               <div>
-                <p className="font-semibold text-gray-900 text-sm">{admin.name}</p>
+                <p className="font-semibold text-gray-900 text-sm">{admin?.name || 'Admin'}</p>
                 <p className="text-cyan-600 text-xs font-medium">
-                  {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                  {admin?.role === 'super_admin' ? 'Super Admin' : 'Admin'}
                 </p>
               </div>
             </div>

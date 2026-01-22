@@ -3,12 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Briefcase, Calendar, Star, DollarSign, TrendingUp, 
-  Users, CheckCircle, Clock, Eye
+  Users, CheckCircle, Clock, Eye, Shield, Award, AlertCircle, XCircle
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const DashboardOverview = () => {
   const router = useRouter();
+  const [vendorInfo, setVendorInfo] = useState(null);
   const [stats, setStats] = useState({
     totalServices: 0,
     activeBookings: 0,
@@ -28,7 +29,13 @@ const DashboardOverview = () => {
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const user = JSON.parse(localStorage.getItem('user'));
+      const userData = localStorage.getItem('vendorData') || localStorage.getItem('user');
+      const user = JSON.parse(userData);
+
+      console.log('👤 Vendor user data:', user);
+
+      // Store vendor info for verification status and admin rating
+      setVendorInfo(user);
 
       // Fetch vendor's services
       const servicesResponse = await fetch(
@@ -60,7 +67,7 @@ const DashboardOverview = () => {
 
         setStats({
           totalServices: services.length,
-          activeBookings: services.reduce((sum, s) => sum + (s.totalBookings || 0), 0),
+          activeBookings: services.filter((s) => s.available).length,
           totalEarnings,
           avgRating: avgRating.toFixed(1),
           totalReviews,
@@ -76,6 +83,49 @@ const DashboardOverview = () => {
       setLoading(false);
     }
   };
+
+  // Helper function to get admin rating
+  const getAdminRating = () => {
+    if (!vendorInfo?.adminRating) return 0;
+    if (typeof vendorInfo.adminRating === 'object') {
+      return vendorInfo.adminRating.rating || 0;
+    }
+    return vendorInfo.adminRating || 0;
+  };
+
+  // Get verification status badge
+  const getVerificationBadge = () => {
+    const status = vendorInfo?.verificationStatus || 'Pending';
+    
+    const statusConfig = {
+      'Verified': {
+        color: 'bg-green-100 border-green-300 text-green-800',
+        icon: CheckCircle,
+        message: 'Your account is verified!'
+      },
+      'Pending': {
+        color: 'bg-yellow-100 border-yellow-300 text-yellow-800',
+        icon: Clock,
+        message: 'Verification pending - Admin review in progress'
+      },
+      'Under Review': {
+        color: 'bg-blue-100 border-blue-300 text-blue-800',
+        icon: Clock,
+        message: 'Documents under review by admin team'
+      },
+      'Rejected': {
+        color: 'bg-red-100 border-red-300 text-red-800',
+        icon: XCircle,
+        message: vendorInfo?.rejectionReason || 'Verification rejected'
+      }
+    };
+
+    return statusConfig[status] || statusConfig['Pending'];
+  };
+
+  const adminRating = getAdminRating();
+  const verificationBadge = getVerificationBadge();
+  const VerificationIcon = verificationBadge.icon;
 
   const statCards = [
     {
@@ -123,6 +173,89 @@ const DashboardOverview = () => {
 
   return (
     <div className="space-y-6">
+      {/* 🆕 NEW: Verification & Admin Rating Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Verification Status Card */}
+        <div className={`rounded-xl shadow-lg p-6 border-2 ${verificationBadge.color}`}>
+          <div className="flex items-start gap-4">
+            <div className="bg-white/50 p-3 rounded-lg">
+              <VerificationIcon size={32} />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-lg mb-1">Verification Status</h3>
+              <p className="text-sm mb-3">{verificationBadge.message}</p>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-white/50 rounded-full text-sm font-bold">
+                  {vendorInfo?.verificationStatus || 'Pending'}
+                </span>
+                {vendorInfo?.isVerified && (
+                  <Shield size={20} className="text-green-700" />
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {vendorInfo?.verificationStatus === 'Rejected' && vendorInfo?.rejectionReason && (
+            <div className="mt-4 pt-4 border-t border-red-200">
+              <p className="text-sm font-semibold mb-1">Rejection Reason:</p>
+              <p className="text-sm">{vendorInfo.rejectionReason}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Admin Rating Card */}
+        {/* <div className={`rounded-xl shadow-lg p-6 border-2 ${
+          adminRating > 0 
+            ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-300'
+            : 'bg-gray-50 border-gray-300'
+        }`}>
+          <div className="flex items-start gap-4">
+            <div className={`${adminRating > 0 ? 'bg-gradient-to-br from-yellow-500 to-orange-500' : 'bg-gray-400'} p-3 rounded-lg`}>
+              <Award size={32} className="text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-lg mb-1 text-gray-900">Admin Rating</h3>
+              {adminRating > 0 ? (
+                <>
+                  <p className="text-sm text-gray-700 mb-3">
+                    Our admins have rated your services
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          size={24}
+                          className={star <= adminRating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-3xl font-bold text-gray-900">{adminRating}/5</span>
+                  </div>
+                  {vendorInfo?.adminRatingComment && (
+                    <div className="mt-3 p-3 bg-white/50 rounded-lg">
+                      <p className="text-sm text-gray-700">
+                        <strong>Comment:</strong> {vendorInfo.adminRatingComment}
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Not yet rated by admin
+                  </p>
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <AlertCircle size={20} />
+                    <span className="text-sm">Keep providing excellent service to earn a rating</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div> */}
+      </div>
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, index) => {

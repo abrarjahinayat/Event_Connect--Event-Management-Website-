@@ -38,7 +38,7 @@ export default function AdminLoginPage() {
 
       if (data.success) {
         localStorage.setItem('adminToken', data.token);
-        localStorage.setItem('adminData', JSON.stringify(data.data));
+        localStorage.setItem('adminData', JSON.stringify(data.admin));
         router.push('/admin/dashboard');
       } else {
         setError(data.message || 'Login failed');

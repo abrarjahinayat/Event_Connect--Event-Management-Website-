@@ -184,12 +184,12 @@ export default function MyServices() {
             {services.filter((s) => s.available).length}
           </p>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        {/* <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <p className="text-gray-600 text-sm">Total Views</p>
           <p className="text-2xl font-bold text-cyan-600 mt-1">
             {services.reduce((sum, s) => sum + (s.views || 0), 0)}
           </p>
-        </div>
+        </div> */}
       </div>
 
       {/* Search and Filter */}
