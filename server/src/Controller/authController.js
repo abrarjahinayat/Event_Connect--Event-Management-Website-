@@ -243,4 +243,46 @@ const loginControllers = async (req, res, next) => {
   }
 };
 
-module.exports = { signupController, verifyOtpControllers, loginControllers };
+// 🆕 NEW: Get Vendor by ID (for refreshing dashboard data)
+const getVendorByIdController = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    console.log('🔍 Fetching vendor by ID:', id);
+
+    // Find vendor and exclude password
+    const vendor = await signupModel.findById(id).select('-password -otp');
+
+    if (!vendor) {
+      console.log('❌ Vendor not found');
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found"
+      });
+    }
+
+    console.log('✅ Vendor found:', vendor.buisnessName);
+    console.log('📊 Admin Rating:', vendor.adminRating);
+    console.log('📊 Verification Status:', vendor.verificationStatus);
+    console.log('📊 Is Verified:', vendor.isVerified);
+
+    return res.status(200).json({
+      success: true,
+      message: "Vendor fetched successfully",
+      data: vendor
+    });
+
+  } catch (err) {
+    console.error('❌ Get vendor error:', err);
+    next(err);
+  }
+};
+
+// Update exports
+module.exports = { 
+  signupController, 
+  verifyOtpControllers, 
+  loginControllers,
+  getVendorByIdController  // 🆕 Export new controller
+};
+

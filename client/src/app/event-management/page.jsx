@@ -14,6 +14,9 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
     ? (house.vendorId?.adminRating?.rating || 0)
     : (house.vendorId?.adminRating || house.adminRating || 0);
 
+  // 🎯 FIXED: Get verification status from vendorId (populated vendor data)
+  const isVerified = house.vendorId?.isVerified || house.isVerified || false;
+
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
       <div className="relative h-56 overflow-hidden">
@@ -38,8 +41,8 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
           )}
         </div>
 
-        {/* 🎯 VERIFIED BADGE - Top Left */}
-        {house.isVerified && (
+        {/* 🎯 VERIFIED BADGE - Top Left - Now checks vendorId.isVerified */}
+        {isVerified && (
           <div className="absolute top-4 left-4">
             <span className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-lg">
               <Shield size={16} />
@@ -50,7 +53,7 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
 
         {/* 🆕 ADMIN RATING BADGE - Below Verified Badge */}
         {adminRating > 0 && (
-          <div className={`absolute ${house.isVerified ? 'top-16' : 'top-4'} left-4`}>
+          <div className={`absolute ${isVerified ? 'top-16' : 'top-4'} left-4`}>
             <span className="flex items-center gap-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-lg">
               <Award size={16} />
               Admin: {adminRating}/5
@@ -71,9 +74,9 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
           <h3 className="text-xl font-bold text-gray-900 line-clamp-1 flex-1">
             {house.companyName}
           </h3>
-          {/* Icons Next to Name */}
+          {/* Icons Next to Name - Now checks vendorId.isVerified */}
           <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-            {house.isVerified && (
+            {isVerified && (
               <Shield size={20} className="text-blue-600" title="Verified Vendor" />
             )}
             {adminRating > 0 && (
@@ -170,6 +173,7 @@ export default function ProductionHousesPage() {
       if (data.success) {
         console.log('✅ Services loaded:', data.data.length);
         console.log('📊 First service sample:', data.data[0]);
+        console.log('📊 First service vendorId:', data.data[0]?.vendorId);
         setServices(data.data);
       } else {
         console.error('Failed to fetch services:', data.message);
@@ -202,15 +206,22 @@ export default function ProductionHousesPage() {
     return house.vendorId?.adminRating || house.adminRating || 0;
   };
 
+  // 🎯 ADDED: Helper function to get verification status
+  const getIsVerified = (house) => {
+    return house.vendorId?.isVerified || house.isVerified || false;
+  };
+
   // Filter and sort logic
   const filteredHouses = useMemo(() => {
     let filtered = services.filter(house => {
       const matchesSpecialty = filters.specialty === 'all' || 
                               house.specialties?.includes(filters.specialty);
       
+      // 🎯 FIXED: Check vendorId.isVerified
+      const isVerified = getIsVerified(house);
       const matchesVerified = filters.verified === 'all' || 
-                             (filters.verified === 'verified' && house.isVerified) ||
-                             (filters.verified === 'unverified' && !house.isVerified);
+                             (filters.verified === 'verified' && isVerified) ||
+                             (filters.verified === 'unverified' && !isVerified);
       
       // 🆕 Admin rating filter
       const adminRating = getAdminRating(house);
@@ -241,7 +252,7 @@ export default function ProductionHousesPage() {
   }, [services, filters.specialty, filters.verified, filters.minAdminRating, sortBy]);
 
   const handleViewDetails = (identifier) => {
-    router.push(`/production-houses/${identifier}`);
+    router.push(`/event-management/${identifier}`);
   };
 
   const resetFilters = () => {
@@ -275,7 +286,7 @@ export default function ProductionHousesPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-cyan-50">
         <div className="text-center">
           <Loader2 className="w-16 h-16 animate-spin text-cyan-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading event management services...</p>
+          <p className="text-gray-600">Loading Event Management...</p>
         </div>
       </div>
     );
@@ -287,10 +298,10 @@ export default function ProductionHousesPage() {
       <div className="bg-cyan-600 text-white py-16 px-4">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Event Management Services in Bangladesh
+            Event Management in Bangladesh
           </h1>
           <p className="text-cyan-100 text-lg max-w-2xl">
-            Discover and book premium event management services verified by our admin team.
+            Discover and book premium Event Management verified by our admin team.
           </p>
         </div>
       </div>
@@ -498,7 +509,7 @@ export default function ProductionHousesPage() {
           )}
         </div>
 
-        {/* Stats Bar */}
+        {/* Stats Bar - 🎯 FIXED: Now uses getIsVerified helper */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
             <div>
@@ -517,7 +528,7 @@ export default function ProductionHousesPage() {
             </div>
             <div>
               <div className="text-3xl font-bold text-blue-600 mb-1">
-                {filteredHouses.filter(h => h.isVerified).length}
+                {filteredHouses.filter(h => getIsVerified(h)).length}
               </div>
               <div className="text-gray-600 text-sm">Verified Vendors</div>
             </div>
@@ -532,7 +543,7 @@ export default function ProductionHousesPage() {
           </div>
         </div>
 
-        {/* Event Management Services Grid */}
+        {/* Event Management Grid */}
         {filteredHouses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredHouses.map((house) => (
@@ -550,7 +561,7 @@ export default function ProductionHousesPage() {
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">No Results Found</h3>
             <p className="text-gray-600 mb-6">
-              We couldn't find any event management services matching your criteria.
+              We couldn't find any Event Management matching your criteria.
             </p>
             <button
               onClick={resetFilters}

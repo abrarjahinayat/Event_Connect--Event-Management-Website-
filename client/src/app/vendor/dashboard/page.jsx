@@ -19,7 +19,6 @@ const DashboardOverview = () => {
     pendingBookings: 0
   });
   const [recentServices, setRecentServices] = useState([]);
-  const [recentBookings, setRecentBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,10 +31,44 @@ const DashboardOverview = () => {
       const userData = localStorage.getItem('vendorData') || localStorage.getItem('user');
       const user = JSON.parse(userData);
 
-      console.log('👤 Vendor user data:', user);
+      console.log('👤 Vendor user data from localStorage:', user);
 
-      // Store vendor info for verification status and admin rating
-      setVendorInfo(user);
+      // 🎯 CRITICAL: Fetch latest vendor data from API to get admin rating and verification
+      try {
+        console.log('📡 Fetching vendor data from API...');
+        const vendorResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API}/auth/${user._id}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+
+        console.log('📡 API Response status:', vendorResponse.status);
+
+        if (vendorResponse.ok) {
+          const vendorData = await vendorResponse.json();
+          console.log('📦 Full API Response:', vendorData);
+          
+          if (vendorData.success) {
+            setVendorInfo(vendorData.data);
+            console.log('✅ Vendor Info Set:');
+            console.log('  - Admin Rating:', vendorData.data.adminRating);
+            console.log('  - Verification Status:', vendorData.data.verificationStatus);
+            console.log('  - Is Verified:', vendorData.data.isVerified);
+          } else {
+            console.warn('⚠️ API returned success:false, using localStorage');
+            setVendorInfo(user);
+          }
+        } else {
+          console.warn('⚠️ API request failed with status:', vendorResponse.status);
+          setVendorInfo(user);
+        }
+      } catch (apiError) {
+        console.error('❌ Error fetching vendor from API:', apiError);
+        setVendorInfo(user);
+      }
 
       // Fetch vendor's services
       const servicesResponse = await fetch(
@@ -71,7 +104,7 @@ const DashboardOverview = () => {
           totalEarnings,
           avgRating: avgRating.toFixed(1),
           totalReviews,
-          pendingBookings: 0 // Will be updated when you implement bookings
+          pendingBookings: 0
         });
 
         setRecentServices(services.slice(0, 5));
@@ -79,23 +112,34 @@ const DashboardOverview = () => {
 
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('❌ Error fetching dashboard data:', error);
       setLoading(false);
     }
   };
 
   // Helper function to get admin rating
   const getAdminRating = () => {
-    if (!vendorInfo?.adminRating) return 0;
+    console.log('🔍 Getting admin rating from vendorInfo:', vendorInfo);
+    
+    if (!vendorInfo?.adminRating) {
+      console.log('❌ No adminRating found');
+      return 0;
+    }
+    
     if (typeof vendorInfo.adminRating === 'object') {
+      console.log('📦 Admin rating is object:', vendorInfo.adminRating);
       return vendorInfo.adminRating.rating || 0;
     }
+    
+    console.log('🔢 Admin rating is number:', vendorInfo.adminRating);
     return vendorInfo.adminRating || 0;
   };
 
   // Get verification status badge
   const getVerificationBadge = () => {
     const status = vendorInfo?.verificationStatus || 'Pending';
+    console.log('🔍 Verification Status:', status);
+    console.log('🔍 Is Verified:', vendorInfo?.isVerified);
     
     const statusConfig = {
       'Verified': {
@@ -126,6 +170,9 @@ const DashboardOverview = () => {
   const adminRating = getAdminRating();
   const verificationBadge = getVerificationBadge();
   const VerificationIcon = verificationBadge.icon;
+
+  console.log('🎯 Rendering with adminRating:', adminRating);
+  console.log('🎯 Rendering with verification:', vendorInfo?.verificationStatus);
 
   const statCards = [
     {
@@ -173,7 +220,20 @@ const DashboardOverview = () => {
 
   return (
     <div className="space-y-6">
-      {/* 🆕 NEW: Verification & Admin Rating Cards */}
+      {/* 🆕 Debug Panel - Check console for detailed logs
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm text-blue-900 font-mono">
+          <strong>Debug:</strong> Vendor ID: {vendorInfo?._id} | 
+          Admin Rating: {JSON.stringify(vendorInfo?.adminRating)} = {adminRating} | 
+          Status: {vendorInfo?.verificationStatus} | 
+          Verified: {vendorInfo?.isVerified ? 'Yes' : 'No'}
+        </p>
+        <p className="text-xs text-blue-700 mt-2">
+          Check browser console (F12) for detailed logs
+        </p>
+      </div> */}
+
+      {/* Verification & Admin Rating Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Verification Status Card */}
         <div className={`rounded-xl shadow-lg p-6 border-2 ${verificationBadge.color}`}>
@@ -204,7 +264,7 @@ const DashboardOverview = () => {
         </div>
 
         {/* Admin Rating Card */}
-        {/* <div className={`rounded-xl shadow-lg p-6 border-2 ${
+        <div className={`rounded-xl shadow-lg p-6 border-2 ${
           adminRating > 0 
             ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-300'
             : 'bg-gray-50 border-gray-300'
@@ -253,7 +313,7 @@ const DashboardOverview = () => {
               )}
             </div>
           </div>
-        </div> */}
+        </div>
       </div>
 
       {/* Stats Grid */}

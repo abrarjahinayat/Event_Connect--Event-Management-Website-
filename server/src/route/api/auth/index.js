@@ -1,5 +1,5 @@
 const express = require('express');
-const { signupController, verifyOtpControllers, loginControllers } = require('../../../Controller/authController');
+const { signupController, verifyOtpControllers, loginControllers, getVendorByIdController } = require('../../../Controller/authController');
 const router = express.Router();
 const upload = require("../../../utils/multer.img.upload");
 
@@ -13,6 +13,9 @@ router.post('/signup', upload.fields([
 
 router.post('/verify-otp', verifyOtpControllers);
 router.post('/login', loginControllers);
+
+// 🆕 NEW: Get vendor by ID
+router.get('/:id', getVendorByIdController);
 
 
 module.exports = router;

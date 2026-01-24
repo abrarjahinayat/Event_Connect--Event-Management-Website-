@@ -95,7 +95,7 @@ const addvendorServicesControllers = async (req, res) => {
       features: features || [],
       services: services || [],
       packages: packages || [],
-      portfolio: portfolio || [],  // 🎯 CRITICAL: Added portfolio field
+      portfolio: portfolio || [],
       contact,
       serviceCategory,
       vendorId,
@@ -198,15 +198,23 @@ const getallvendorServicesControllers = async (req, res) => {
     const sortOptions = {};
     sortOptions[sortBy] = order === "asc" ? 1 : -1;
 
-    // Execute query
+    // 🎯 CRITICAL FIX: Populate vendorId with ALL fields including admin rating
     let services = await vendorServicesModel
       .find(query)
-      .populate("vendorId", "buisnessName email phone")
+      .populate({
+        path: "vendorId",
+        select: "buisnessName email phone service adminRating adminRatingComment isVerified verificationStatus image"
+      })
       .limit(parseInt(limit))
       .skip(skip)
       .sort(sortOptions);
 
     const total = await vendorServicesModel.countDocuments(query);
+
+    console.log('✅ Services fetched:', services.length);
+    if (services.length > 0) {
+      console.log('📊 First service vendor data:', services[0].vendorId);
+    }
 
     return res.status(200).json({
       success: true,
@@ -241,12 +249,18 @@ const getSingleServiceController = async (req, res) => {
       // It's an ObjectId
       service = await vendorServicesModel
         .findById(identifier)
-        .populate("vendorId", "buisnessName email phone service");
+        .populate({
+          path: "vendorId",
+          select: "buisnessName email phone service adminRating adminRatingComment isVerified verificationStatus image"
+        });
     } else {
       // It's a slug
       service = await vendorServicesModel
         .findOne({ slug: identifier })
-        .populate("vendorId", "buisnessName email phone service");
+        .populate({
+          path: "vendorId",
+          select: "buisnessName email phone service adminRating adminRatingComment isVerified verificationStatus image"
+        });
     }
 
     if (!service) {
@@ -459,6 +473,10 @@ const getServicesByCategoryController = async (req, res) => {
         serviceCategory: category,
         isActive: true,
         availability: "Available"
+      })
+      .populate({
+        path: "vendorId",
+        select: "buisnessName email phone service adminRating adminRatingComment isVerified verificationStatus image"
       })
       .sort({ rating: -1 });
 

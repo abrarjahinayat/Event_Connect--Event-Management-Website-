@@ -14,6 +14,9 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
     ? (house.vendorId?.adminRating?.rating || 0)
     : (house.vendorId?.adminRating || house.adminRating || 0);
 
+  // 🎯 FIXED: Get verification status from vendorId (populated vendor data)
+  const isVerified = house.vendorId?.isVerified || house.isVerified || false;
+
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
       <div className="relative h-56 overflow-hidden">
@@ -38,8 +41,8 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
           )}
         </div>
 
-        {/* 🎯 VERIFIED BADGE - Top Left */}
-        {house.isVerified && (
+        {/* 🎯 VERIFIED BADGE - Top Left - Now checks vendorId.isVerified */}
+        {isVerified && (
           <div className="absolute top-4 left-4">
             <span className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-lg">
               <Shield size={16} />
@@ -50,7 +53,7 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
 
         {/* 🆕 ADMIN RATING BADGE - Below Verified Badge */}
         {adminRating > 0 && (
-          <div className={`absolute ${house.isVerified ? 'top-16' : 'top-4'} left-4`}>
+          <div className={`absolute ${isVerified ? 'top-16' : 'top-4'} left-4`}>
             <span className="flex items-center gap-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-lg">
               <Award size={16} />
               Admin: {adminRating}/5
@@ -71,9 +74,9 @@ const ProductionHouseCard = ({ house, onViewDetails }) => {
           <h3 className="text-xl font-bold text-gray-900 line-clamp-1 flex-1">
             {house.companyName}
           </h3>
-          {/* Icons Next to Name */}
+          {/* Icons Next to Name - Now checks vendorId.isVerified */}
           <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-            {house.isVerified && (
+            {isVerified && (
               <Shield size={20} className="text-blue-600" title="Verified Vendor" />
             )}
             {adminRating > 0 && (
@@ -170,6 +173,7 @@ export default function ProductionHousesPage() {
       if (data.success) {
         console.log('✅ Services loaded:', data.data.length);
         console.log('📊 First service sample:', data.data[0]);
+        console.log('📊 First service vendorId:', data.data[0]?.vendorId);
         setServices(data.data);
       } else {
         console.error('Failed to fetch services:', data.message);
@@ -202,15 +206,22 @@ export default function ProductionHousesPage() {
     return house.vendorId?.adminRating || house.adminRating || 0;
   };
 
+  // 🎯 ADDED: Helper function to get verification status
+  const getIsVerified = (house) => {
+    return house.vendorId?.isVerified || house.isVerified || false;
+  };
+
   // Filter and sort logic
   const filteredHouses = useMemo(() => {
     let filtered = services.filter(house => {
       const matchesSpecialty = filters.specialty === 'all' || 
                               house.specialties?.includes(filters.specialty);
       
+      // 🎯 FIXED: Check vendorId.isVerified
+      const isVerified = getIsVerified(house);
       const matchesVerified = filters.verified === 'all' || 
-                             (filters.verified === 'verified' && house.isVerified) ||
-                             (filters.verified === 'unverified' && !house.isVerified);
+                             (filters.verified === 'verified' && isVerified) ||
+                             (filters.verified === 'unverified' && !isVerified);
       
       // 🆕 Admin rating filter
       const adminRating = getAdminRating(house);
@@ -498,7 +509,7 @@ export default function ProductionHousesPage() {
           )}
         </div>
 
-        {/* Stats Bar */}
+        {/* Stats Bar - 🎯 FIXED: Now uses getIsVerified helper */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
             <div>
@@ -517,7 +528,7 @@ export default function ProductionHousesPage() {
             </div>
             <div>
               <div className="text-3xl font-bold text-blue-600 mb-1">
-                {filteredHouses.filter(h => h.isVerified).length}
+                {filteredHouses.filter(h => getIsVerified(h)).length}
               </div>
               <div className="text-gray-600 text-sm">Verified Vendors</div>
             </div>
