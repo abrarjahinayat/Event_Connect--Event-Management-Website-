@@ -5,12 +5,13 @@ import Container from './Container';
 import logo from '../../images/logo.png';
 import Image from 'next/image';
 import Link from 'next/link';
-import { User, LogOut, ChevronDown } from 'lucide-react';
+import { User, LogOut, ChevronDown, Sparkles, Bell } from 'lucide-react';
 
 const Header = () => {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     // Check if user is logged in
@@ -20,109 +21,205 @@ const Header = () => {
     if (userData && userToken) {
       setUser(JSON.parse(userData));
     }
+
+    // Add scroll listener for header effect
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const handleLogout = () => {
-    // Clear user data
     localStorage.removeItem('userData');
     localStorage.removeItem('userToken');
     setUser(null);
     setShowDropdown(false);
-    
-    // Redirect to home
     router.push('/');
     alert('✅ Logged out successfully!');
   };
 
   return (
-    <section className='py-5 bg-white shadow-sm sticky top-0 z-50'>
+    <section className={`sticky top-0 z-50 transition-all duration-300 ${
+      scrolled 
+        ? 'py-3 bg-white/95 backdrop-blur-lg shadow-lg border-b border-cyan-100' 
+        : 'py-5 bg-white shadow-sm'
+    }`}>
       <Container>
         <div className='flex items-center justify-between'>
-          {/* Logo */}
-          <div className='cursor-pointer' onClick={() => router.push('/')}>
-            <Image src={logo} alt="logo"  />
+          {/* Logo with Enhanced Styling */}
+          <div 
+            className='cursor-pointer flex items-center gap-3 group' 
+            onClick={() => router.push('/')}
+          >
+            <div className='relative'>
+              <Image src={logo} alt="logo" className='transition-transform duration-300 group-hover:scale-105' />
+              {/* Glow effect on hover */}
+              <div className='absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300' />
+            </div>
           </div>
 
           {/* Navigation */}
           <div>
-            <ul className='flex cursor-pointer items-center font-outfit gap-10 text-xl font-semibold text-[#333333]'>
-              <li className='hover:text-[#00C0E8] transition-colors'>
-                <Link href="/">Home</Link>
+            <ul className='flex cursor-pointer items-center font-outfit gap-10 text-lg font-semibold text-gray-700'>
+              {/* Navigation Links with Modern Hover Effect */}
+              <li className='relative group'>
+                <Link href="/" className='flex items-center gap-1'>
+                  Home
+                  <div className='absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 group-hover:w-full transition-all duration-300' />
+                </Link>
               </li>
-              <li className='hover:text-[#00C0E8] transition-colors'>
-                <Link href="/services">Services</Link>
+              
+              <li className='relative group'>
+                <Link href="/services" className='flex items-center gap-1'>
+                  Services
+                  <div className='absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 group-hover:w-full transition-all duration-300' />
+                </Link>
               </li>
-              <li className='hover:text-[#00C0E8] transition-colors'>
-                <Link href="/contact">Contact</Link>
+              
+              <li className='relative group'>
+                <Link href="/contact" className='flex items-center gap-1'>
+                  Contact
+                  <div className='absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 group-hover:w-full transition-all duration-300' />
+                </Link>
               </li>
 
               {/* User Authentication */}
               {user ? (
-                // Logged In - Show User Menu
+                // Logged In - Modern User Menu
                 <li className='relative'>
                   <button
                     onClick={() => setShowDropdown(!showDropdown)}
-                    className='flex items-center gap-2 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors'
+                    className='flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-50 to-blue-50 hover:from-cyan-100 hover:to-blue-100 border border-cyan-200/50 transition-all duration-300 hover:shadow-lg'
                   >
-                    <div className='w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center'>
-                      <User className='w-5 h-5 text-white' />
+                    {/* Avatar with gradient ring */}
+                    <div className='relative'>
+                      <div className='w-9 h-9 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center ring-2 ring-white shadow-md'>
+                        <User className='w-5 h-5 text-white' />
+                      </div>
+                      {/* Online indicator */}
+                      <div className='absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white' />
                     </div>
-                    <span className='text-base font-medium'>{user.name}</span>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+                    
+                    <div className='text-left'>
+                      <p className='text-sm font-bold text-gray-800 leading-tight'>{user.name}</p>
+                     
+                    </div>
+                    
+                    <ChevronDown className={`w-4 h-4 text-gray-600 transition-transform duration-300 ${showDropdown ? 'rotate-180' : ''}`} />
                   </button>
 
-                  {/* Dropdown Menu */}
+                  {/* Enhanced Dropdown Menu */}
                   {showDropdown && (
-                    <div className='absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-xl py-2'>
-                      <div className='px-4 py-3 border-b border-gray-200'>
-                        <p className='text-sm font-medium text-gray-900'>{user.name}</p>
-                        <p className='text-xs text-gray-500 truncate'>{user.email}</p>
+                    <div className='absolute right-0 mt-3 w-72 bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden animate-dropdown'>
+                      {/* User Info Header */}
+                      <div className='bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-4'>
+                        <div className='flex items-center gap-3'>
+                          <div className='w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50'>
+                            <User className='w-6 h-6 text-white' />
+                          </div>
+                          <div>
+                            <p className='text-base font-bold text-white'>{user.name}</p>
+                            <p className='text-xs text-cyan-100 truncate max-w-[180px]'>{user.email}</p>
+                          </div>
+                        </div>
                       </div>
-                      
-                      <Link
-                        href="/user/profile"
-                        className='flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
-                        onClick={() => setShowDropdown(false)}
-                      >
-                        <User className='w-4 h-4' />
-                        My Profile
-                      </Link>
-                      
-                      <Link
-                        href="/user/booking"
-                        className='flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
-                        onClick={() => setShowDropdown(false)}
-                      >
-                        <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                          <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' />
-                        </svg>
-                        My Bookings
-                      </Link>
 
-                      <div className='border-t border-gray-200 my-2'></div>
+                      {/* Menu Items */}
+                      <div className='py-2'>
+                        <Link
+                          href="/user/profile"
+                          className='flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gradient-to-r hover:from-cyan-50 hover:to-blue-50 transition-all duration-200 group'
+                          onClick={() => setShowDropdown(false)}
+                        >
+                          <div className='w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-white group-hover:shadow-md transition-all'>
+                            <User className='w-4 h-4 text-gray-600' />
+                          </div>
+                          <div>
+                            <p className='font-semibold'>My Profile</p>
+                            <p className='text-xs text-gray-500'>View and edit profile</p>
+                          </div>
+                        </Link>
+                        
+                        <Link
+                          href="/user/booking"
+                          className='flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gradient-to-r hover:from-cyan-50 hover:to-blue-50 transition-all duration-200 group'
+                          onClick={() => setShowDropdown(false)}
+                        >
+                          <div className='w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-white group-hover:shadow-md transition-all'>
+                            <svg className='w-4 h-4 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className='font-semibold'>My Bookings</p>
+                            <p className='text-xs text-gray-500'>Manage your events</p>
+                          </div>
+                        </Link>
+
+                        <Link
+                          href="/user/notifications"
+                          className='flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gradient-to-r hover:from-cyan-50 hover:to-blue-50 transition-all duration-200 group'
+                          onClick={() => setShowDropdown(false)}
+                        >
+                          <div className='w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-white group-hover:shadow-md transition-all relative'>
+                            <Bell className='w-4 h-4 text-gray-600' />
+                            <span className='absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full' />
+                          </div>
+                          <div>
+                            <p className='font-semibold'>Notifications</p>
+                            <p className='text-xs text-gray-500'>3 new updates</p>
+                          </div>
+                        </Link>
+                      </div>
+
+                      {/* Divider */}
+                      <div className='border-t border-gray-100 my-2' />
                       
+                      {/* Logout Button */}
                       <button
                         onClick={handleLogout}
-                        className='flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors'
+                        className='flex items-center gap-3 w-full px-5 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-all duration-200 group'
                       >
-                        <LogOut className='w-4 h-4' />
-                        Logout
+                        <div className='w-9 h-9 bg-red-50 rounded-lg flex items-center justify-center group-hover:bg-red-100 transition-all'>
+                          <LogOut className='w-4 h-4' />
+                        </div>
+                        <div className='text-left'>
+                          <p className='font-semibold'>Logout</p>
+                          <p className='text-xs text-red-500'>Sign out from account</p>
+                        </div>
                       </button>
                     </div>
                   )}
                 </li>
               ) : (
-                // Not Logged In - Show Login/Signup
+                // Not Logged In - Modern Login/Signup
                 <>
-                  <li className='hover:text-[#00C0E8] transition-colors'>
-                    <Link href="/user/login">Login</Link>
+                  <li className='relative group'>
+                    <Link 
+                      href="/user/login"
+                      className='flex items-center gap-2 px-5 py-2.5 rounded-xl text-gray-700 hover:text-cyan-600 font-semibold transition-all duration-300'
+                    >
+                      Login
+                      <div className='absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 group-hover:w-full transition-all duration-300' />
+                    </Link>
                   </li>
                   
                   <button 
                     onClick={() => router.push('/user/signup')}
-                    className='cursor-pointer border-2 bg-[#00C0E8] px-6 py-2 rounded-md text-white text-xl font-outfit font-medium hover:bg-white hover:text-[#00C0E8] hover:border-[#00C0E8] transition-all duration-300'
+                    className='relative group cursor-pointer px-6 py-2.5 rounded-xl text-white text-base font-outfit font-semibold overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-xl'
                   >
-                    Sign Up
+                    {/* Gradient Background */}
+                    <div className='absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-300 group-hover:from-cyan-600 group-hover:to-blue-700' />
+                    
+                    {/* Shine Effect */}
+                    <div className='absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700' />
+                    
+                    <span className='relative z-10 flex items-center gap-2'>
+                      <Sparkles className='w-4 h-4' />
+                      Sign Up
+                    </span>
                   </button>
                 </>
               )}
@@ -130,6 +227,23 @@ const Header = () => {
           </div>
         </div>
       </Container>
+
+      <style jsx>{`
+        @keyframes dropdown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-dropdown {
+          animation: dropdown 0.2s ease-out;
+        }
+      `}</style>
     </section>
   );
 };

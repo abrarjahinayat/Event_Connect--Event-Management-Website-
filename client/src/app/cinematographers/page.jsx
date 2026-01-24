@@ -561,7 +561,7 @@ export default function ProductionHousesPage() {
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">No Results Found</h3>
             <p className="text-gray-600 mb-6">
-              We couldn't find any Cinematographers matching your criteria.
+              We couldn't find any cinematographers matching your criteria.
             </p>
             <button
               onClick={resetFilters}
