@@ -164,37 +164,22 @@ const vendorServicesSchema = new mongoose.Schema(
     },
 
     // Reviews
-    reviews: [
-      {
-        id: {
-          type: Number,
-        },
-        name: {
-          type: String,
-          required: true,
-        },
-        avatar: {
-          type: String,
-        },
-        rating: {
-          type: Number,
-          required: true,
-          min: 1,
-          max: 5,
-        },
-        comment: {
-          type: String,
-          required: true,
-        },
-        date: {
-          type: String,
-        },
-        createdAt: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
+   // Update reviews array to include userId
+reviews: [
+  {
+    id: { type: Number },
+    userId: {  // 🆕 NEW FIELD
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    name: { type: String, required: true },
+    avatar: { type: String },
+    rating: { type: Number, required: true, min: 1, max: 5 },
+    comment: { type: String, required: true },
+    date: { type: String },
+    createdAt: { type: Date, default: Date.now },
+  },
+],
 
     // Vendor Reference (who owns this service)
     vendorId: {

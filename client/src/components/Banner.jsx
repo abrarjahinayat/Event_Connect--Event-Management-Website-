@@ -64,7 +64,7 @@ const Banner = () => {
   };
 
   return (
-    <section className='relative py-20 mt-16 overflow-hidden bg-gradient-to-br from-white via-cyan-50/40 to-blue-50/30'>
+    <section className='relative py-20  overflow-hidden bg-gradient-to-br from-white via-cyan-50/40 to-blue-50/30'>
       {/* Animated Background Blobs */}
       <div className='absolute top-0 left-0 w-[500px] h-[500px] bg-gradient-to-br from-cyan-200/30 to-blue-200/20 rounded-full blur-3xl -translate-x-1/4 -translate-y-1/4 animate-pulse' />
       <div className='absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-blue-200/20 to-cyan-200/30 rounded-full blur-3xl translate-x-1/4 translate-y-1/4 animate-pulse' style={{ animationDelay: '1s' }} />
@@ -76,8 +76,8 @@ const Banner = () => {
             {/* Badge */}
             <div className='inline-flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 px-5 py-2 rounded-full shadow-lg'>
               <Sparkles className='w-4 h-4 text-white' />
-              <span className='text-white font-semibold text-sm uppercase tracking-wide'>
-                #1 Event Platform In Bangladesh
+              <span className='text-white font-semibold text-sm  tracking-wide'>
+                1<sup>st</sup> EVENT PLATFORM IN BANGLADESH
               </span>
             </div>
 
@@ -90,9 +90,9 @@ const Banner = () => {
                     Event
                   </span>
                   {/* Underline decoration */}
-                  <svg className='absolute -bottom-2 left-0 w-full' viewBox='0 0 200 12' xmlns='http://www.w3.org/2000/svg'>
+                  {/* <svg className='absolute -bottom-2 left-0 w-full' viewBox='0 0 200 12' xmlns='http://www.w3.org/2000/svg'>
                     <path d='M0 8 Q50 2, 100 8 T200 8' stroke='#00C0E8' strokeWidth='3' fill='none' opacity='0.3' />
-                  </svg>
+                  </svg> */}
                 </span>
                 <br />
                 Solution Platform
@@ -102,7 +102,7 @@ const Banner = () => {
             {/* Description */}
             <p className='text-xl md:text-2xl font-outfit text-gray-700 leading-relaxed max-w-xl'>
               Connect with the <span className='font-bold text-cyan-600'>best event professionals</span> in one place. 
-              We have everything you need for your <span className='font-bold text-blue-600'>perfect event</span>.
+              We have everything you need for your <span className=' text-gray-700'>perfect event</span>.
             </p>
 
             {/* Feature Pills */}
@@ -132,9 +132,9 @@ const Banner = () => {
                 
                 <span className='relative z-10 flex items-center gap-2'>
                   Explore Services
-                  <svg className='w-5 h-5 transform group-hover:translate-x-1 transition-transform' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  {/* <svg className='w-5 h-5 transform group-hover:translate-x-1 transition-transform' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                     <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M17 8l4 4m0 0l-4 4m4-4H3' />
-                  </svg>
+                  </svg> */}
                 </span>
               </button>
 

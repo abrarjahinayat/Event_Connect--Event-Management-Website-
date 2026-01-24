@@ -9,6 +9,8 @@ const {
   getServicesByVendorController,
   getServicesByCategoryController,
   createBookingController,
+  getAllReviewsController,
+  getServiceReviewsController,
 } = require("../../../Controller/vendorServicesControllers");
 const { 
   portfolioUpload, 
@@ -22,6 +24,10 @@ const router = express.Router();
 router.get("/allservices", getallvendorServicesControllers);
 router.get("/category/:category", getServicesByCategoryController);
 router.get("/vendor/:vendorId", getServicesByVendorController);
+// Add these routes
+router.get("/reviews/all", getAllReviewsController);
+router.get("/:id/reviews", getServiceReviewsController);
+router.post("/:id/review", addReviewController);
 router.get("/:identifier", getSingleServiceController);
 
 // 🎯 NEW: Portfolio image upload endpoint
@@ -51,5 +57,7 @@ router.post("/:id/review", addReviewController);
 
 // Booking routes
 router.post("/:id/book", createBookingController);
+
+
 
 module.exports = router;

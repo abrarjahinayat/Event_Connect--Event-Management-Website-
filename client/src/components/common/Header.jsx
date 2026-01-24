@@ -46,6 +46,8 @@ const Header = () => {
         ? 'py-3 bg-white/95 backdrop-blur-lg shadow-lg border-b border-cyan-100' 
         : 'py-5 bg-white shadow-sm'
     }`}>
+       <div className='absolute top-0 left-0 w-[500px] h-[500px] bg-gradient-to-br from-cyan-200/30 to-blue-200/20 rounded-full blur-3xl -translate-x-1/4 -translate-y-1/4 animate-pulse' />
+      <div className='absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-blue-200/20 to-cyan-200/30 rounded-full blur-3xl translate-x-1/4 translate-y-1/4 animate-pulse' style={{ animationDelay: '1s' }} />
       <Container>
         <div className='flex items-center justify-between'>
           {/* Logo with Enhanced Styling */}

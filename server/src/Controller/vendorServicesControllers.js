@@ -375,64 +375,7 @@ const deleteServiceController = async (req, res) => {
 // @desc    Add review to service
 // @route   POST /api/v1/services/:id/review
 // @access  Private (Customer only)
-const addReviewController = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, avatar, rating, comment } = req.body;
 
-    if (!name || !rating || !comment) {
-      return res.status(400).json({
-        success: false,
-        message: "Name, rating, and comment are required",
-      });
-    }
-
-    const service = await vendorServicesModel.findById(id);
-
-    if (!service) {
-      return res.status(404).json({
-        success: false,
-        message: "Service not found",
-      });
-    }
-
-    // Add review
-    const newReview = {
-      id: service.reviews.length + 1,
-      name,
-      avatar: avatar || "/default-avatar.png",
-      rating: parseInt(rating),
-      comment,
-      date: new Date().toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }),
-    };
-
-    service.reviews.push(newReview);
-
-    // Update rating and review count
-    const totalRating = service.reviews.reduce((sum, review) => sum + review.rating, 0);
-    service.rating = (totalRating / service.reviews.length).toFixed(1);
-    service.reviewCount = service.reviews.length;
-
-    await service.save();
-
-    return res.status(201).json({
-      success: true,
-      message: "Review added successfully",
-      data: service,
-    });
-  } catch (error) {
-    console.error("Add review error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: error.message || error,
-    });
-  }
-};
 
 // @desc    Get services by vendor ID
 // @route   GET /api/v1/services/vendor/:vendorId
@@ -546,14 +489,206 @@ const createBookingController = async (req, res) => {
   }
 };
 
+const addReviewController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { bookingId, userId, name, avatar, rating, comment } = req.body;
+
+    if (!name || !rating || !comment) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, rating, and comment are required",
+      });
+    }
+
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({
+        success: false,
+        message: "Rating must be between 1 and 5",
+      });
+    }
+
+    const service = await vendorServicesModel.findById(id);
+
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: "Service not found",
+      });
+    }
+
+    // Check if user has already reviewed this service
+    const existingReview = service.reviews.find(
+      review => review.userId && review.userId.toString() === userId
+    );
+
+    if (existingReview) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already reviewed this service",
+      });
+    }
+
+    // Add review
+    const newReview = {
+      id: service.reviews.length + 1,
+      userId: userId,
+      name,
+      avatar: avatar || "",
+      rating: parseInt(rating),
+      comment,
+      date: new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+      createdAt: new Date(),
+    };
+
+    service.reviews.push(newReview);
+
+    // Update rating and review count
+    const totalRating = service.reviews.reduce((sum, review) => sum + review.rating, 0);
+    service.rating = (totalRating / service.reviews.length).toFixed(1);
+    service.reviewCount = service.reviews.length;
+
+    await service.save();
+
+    // 🆕 If bookingId provided, mark booking as reviewed
+    if (bookingId) {
+      try {
+        const Booking = require('../model/booking.model'); // Adjust path as needed
+        await Booking.findByIdAndUpdate(bookingId, {
+          hasReviewed: true,
+          review: {
+            rating: parseInt(rating),
+            comment,
+            createdAt: new Date(),
+          }
+        });
+      } catch (error) {
+        console.error('Error updating booking review status:', error);
+      }
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Review added successfully",
+      data: service,
+    });
+  } catch (error) {
+    console.error("Add review error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message || error,
+    });
+  }
+};
+
+// 🆕 NEW: Get all reviews across all services
+// @route   GET /api/v1/services/reviews/all
+// @access  Public
+const getAllReviewsController = async (req, res) => {
+  try {
+    const { limit = 50, minRating } = req.query;
+
+    // Get all services with reviews
+    const services = await vendorServicesModel
+      .find({ isActive: true, 'reviews.0': { $exists: true } })
+      .select('companyName serviceCategory reviews')
+      .lean();
+
+    // Flatten all reviews with service context
+    let allReviews = [];
+    
+    services.forEach(service => {
+      service.reviews.forEach(review => {
+        allReviews.push({
+          ...review,
+          serviceName: service.companyName,
+          serviceCategory: service.serviceCategory,
+          serviceId: service._id,
+        });
+      });
+    });
+
+    // Filter by rating if specified
+    if (minRating) {
+      allReviews = allReviews.filter(review => review.rating >= parseFloat(minRating));
+    }
+
+    // Sort by date (newest first)
+    allReviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // Limit results
+    allReviews = allReviews.slice(0, parseInt(limit));
+
+    return res.status(200).json({
+      success: true,
+      message: "Reviews fetched successfully",
+      count: allReviews.length,
+      data: allReviews,
+    });
+  } catch (error) {
+    console.error("Get all reviews error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message || error,
+    });
+  }
+};
+
+// 🆕 NEW: Get reviews for a specific service
+// @route   GET /api/v1/services/:id/reviews
+// @access  Public
+const getServiceReviewsController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const service = await vendorServicesModel
+      .findById(id)
+      .select('companyName reviews rating reviewCount');
+
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: "Service not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Reviews fetched successfully",
+      data: {
+        serviceName: service.companyName,
+        avgRating: service.rating,
+        totalReviews: service.reviewCount,
+        reviews: service.reviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+      },
+    });
+  } catch (error) {
+    console.error("Get service reviews error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message || error,
+    });
+  }
+};
+
+
 module.exports = {
   addvendorServicesControllers,
   getallvendorServicesControllers,
   getSingleServiceController,
   updateServiceController,
   deleteServiceController,
-  addReviewController,
   getServicesByVendorController,
   getServicesByCategoryController,
   createBookingController,
+   addReviewController,
+  getAllReviewsController,  // 🆕
+  getServiceReviewsController,  // 🆕
 };

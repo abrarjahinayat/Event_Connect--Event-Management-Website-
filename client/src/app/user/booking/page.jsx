@@ -16,9 +16,11 @@ import {
   CreditCard,
   Eye,
   X,
+  Star,
+  MessageSquare,
 } from 'lucide-react';
 
-// Booking Status Badge Component
+// 🎯 FIXED: Booking Status Badge Component
 const StatusBadge = ({ status }) => {
   const statusConfig = {
     pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending Review' },
@@ -40,150 +42,6 @@ const StatusBadge = ({ status }) => {
     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${config.bg} ${config.text}`}>
       {config.label}
     </span>
-  );
-};
-
-// Booking Card Component
-const BookingCard = ({ booking, onViewDetails, onPay, onCancel }) => {
-  const canPay = booking.bookingStatus === 'approved' && !booking.payment.advancePaid;
-  const canCancel = ['pending', 'approved', 'admin_reviewing'].includes(booking.bookingStatus);
-  const canViewContact = booking.vendorContactShared && booking.payment.advancePaid;
-
-  return (
-    <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all overflow-hidden">
-      <div className="p-6">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-900 mb-1">
-              {booking.service?.companyName || 'Service Name'}
-            </h3>
-            <p className="text-sm text-gray-600">{booking.service?.serviceCategory || 'Event Service'}</p>
-          </div>
-          <div className="flex-shrink-0">
-            <StatusBadge status={booking.bookingStatus} />
-          </div>
-        </div>
-
-        {/* Service Image */}
-        {booking.service?.image && booking.service.image[0] && (
-          <img
-            src={booking.service.image[0]}
-            alt={booking.service.companyName}
-            className="w-full h-48 object-cover rounded-lg mb-4"
-          />
-        )}
-
-        {/* Details Grid */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="flex items-start gap-2">
-            <Calendar className="w-5 h-5 text-cyan-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs text-gray-500">Event Date</p>
-              <p className="text-sm font-semibold text-gray-900">
-                {new Date(booking.eventDate).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-2">
-            <MapPin className="w-5 h-5 text-cyan-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs text-gray-500">Location</p>
-              <p className="text-sm font-semibold text-gray-900">{booking.eventCity}</p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-2">
-            <DollarSign className="w-5 h-5 text-cyan-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs text-gray-500">Package</p>
-              <p className="text-sm font-semibold text-gray-900">{booking.selectedPackage?.name}</p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-2">
-            <Clock className="w-5 h-5 text-cyan-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs text-gray-500">Requested</p>
-              <p className="text-sm font-semibold text-gray-900">
-                {new Date(booking.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Pricing Info */}
-        <div className="bg-gray-50 rounded-lg p-4 mb-4">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-gray-600">Total Price:</span>
-            <span className="text-lg font-bold text-gray-900">৳{booking.totalPrice.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-gray-600">Advance Payment (10%):</span>
-            <span className={`text-lg font-bold ${booking.payment.advancePaid ? 'text-green-600' : 'text-orange-600'}`}>
-              ৳{booking.advancePayment.toLocaleString()}
-              {booking.payment.advancePaid && ' ✓'}
-            </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">Remaining:</span>
-            <span className="text-sm font-semibold text-gray-700">৳{booking.remainingPayment.toLocaleString()}</span>
-          </div>
-        </div>
-
-        {/* Vendor Contact (Only if paid) */}
-        {canViewContact && booking.vendor && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-            <p className="text-sm font-semibold text-green-800 mb-2">Vendor Contact Details:</p>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-sm text-green-700">
-                <Phone className="w-4 h-4" />
-                <span>{booking.vendor.phone}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-green-700">
-                <Mail className="w-4 h-4" />
-                <span>{booking.vendor.email}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => onViewDetails(booking)}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-all"
-          >
-            <Eye className="w-4 h-4" />
-            View Details
-          </button>
-
-          {canPay && (
-            <button
-              onClick={() => onPay(booking)}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-semibold transition-all"
-            >
-              <CreditCard className="w-4 h-4" />
-              Pay Now
-            </button>
-          )}
-
-          {canCancel && (
-            <button
-              onClick={() => onCancel(booking)}
-              className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-semibold transition-all"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
   );
 };
 
@@ -340,6 +198,355 @@ const BookingDetailsModal = ({ booking, onClose }) => {
   );
 };
 
+// Review Modal Component
+const ReviewModal = ({ booking, onClose, onSubmit }) => {
+  const [rating, setRating] = useState(0);
+  const [hoveredRating, setHoveredRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (rating === 0) {
+      alert('❌ Please select a rating');
+      return;
+    }
+
+    if (!comment.trim()) {
+      alert('❌ Please write a review');
+      return;
+    }
+
+    if (comment.length < 10) {
+      alert('❌ Review must be at least 10 characters');
+      return;
+    }
+
+    setLoading(true);
+    await onSubmit({ rating, comment });
+    setLoading(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden">
+        {/* Header with Gradient */}
+        <div className="bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                <Star className="w-6 h-6 text-white fill-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">Rate Your Experience</h2>
+                <p className="text-cyan-100 text-sm">Help others make better choices</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/20 rounded-full transition-all"
+            >
+              <X className="w-6 h-6 text-white" />
+            </button>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Service Info */}
+          <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl p-4 border border-cyan-200">
+            <p className="text-sm text-gray-600 mb-1">Rating for</p>
+            <p className="font-bold text-lg text-gray-900">{booking.service?.companyName}</p>
+            <p className="text-sm text-gray-600">{booking.service?.serviceCategory}</p>
+          </div>
+
+          {/* Star Rating */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">
+              How would you rate this service? *
+            </label>
+            <div className="flex items-center gap-3 justify-center py-4">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  onMouseEnter={() => setHoveredRating(star)}
+                  onMouseLeave={() => setHoveredRating(0)}
+                  className="transform hover:scale-125 transition-all duration-200"
+                >
+                  <Star
+                    size={48}
+                    className={`${
+                      star <= (hoveredRating || rating)
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : 'text-gray-300'
+                    } transition-all duration-200`}
+                  />
+                </button>
+              ))}
+            </div>
+            <div className="text-center">
+              <span className="text-4xl font-bold text-gray-900">{rating}</span>
+              <span className="text-2xl text-gray-400">/5</span>
+              {rating > 0 && (
+                <p className="text-sm text-gray-600 mt-2">
+                  {rating === 5 && '🎉 Excellent!'}
+                  {rating === 4 && '😊 Very Good!'}
+                  {rating === 3 && '👍 Good!'}
+                  {rating === 2 && '😐 Fair'}
+                  {rating === 1 && '😞 Poor'}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Review Text */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
+              Share your experience *
+            </label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Tell us about your experience with this service. What did you like? What could be improved?"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none transition-all"
+              rows={5}
+              required
+            />
+            <p className="text-xs text-gray-500 mt-2">
+              Minimum 10 characters ({comment.length}/10)
+            </p>
+          </div>
+
+          {/* Guidelines */}
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <div className="flex items-start gap-2">
+              <MessageSquare className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-900">
+                <p className="font-semibold mb-1">Review Guidelines:</p>
+                <ul className="space-y-1 text-xs">
+                  <li>• Be honest and specific about your experience</li>
+                  <li>• Avoid offensive language</li>
+                  <li>• Focus on the service quality and professionalism</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading || rating === 0 || comment.length < 10}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl hover:from-cyan-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <Star className="w-5 h-5 fill-white" />
+                  Submit Review
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Booking Card Component
+const BookingCard = ({ booking, onViewDetails, onPay, onCancel, onReview }) => {
+  const canPay = booking.bookingStatus === 'approved' && !booking.payment.advancePaid;
+  const canCancel = ['pending', 'approved', 'admin_reviewing'].includes(booking.bookingStatus);
+  const canViewContact = booking.vendorContactShared && booking.payment.advancePaid;
+  const canReview = booking.payment.advancePaid && !booking.hasReviewed;
+  const hasReviewed = booking.hasReviewed;
+
+  return (
+    <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all overflow-hidden border border-gray-100">
+      <div className="p-6">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-gray-900 mb-1">
+              {booking.service?.companyName || 'Service Name'}
+            </h3>
+            <p className="text-sm text-gray-600">{booking.service?.serviceCategory || 'Event Service'}</p>
+          </div>
+          <div className="flex-shrink-0">
+            <StatusBadge status={booking.bookingStatus} />
+          </div>
+        </div>
+
+        {/* Service Image */}
+        {booking.service?.image && booking.service.image[0] && (
+          <img
+            src={booking.service.image[0]}
+            alt={booking.service.companyName}
+            className="w-full h-48 object-cover rounded-lg mb-4"
+          />
+        )}
+
+        {/* Details Grid */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="flex items-start gap-2">
+            <Calendar className="w-5 h-5 text-cyan-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs text-gray-500">Event Date</p>
+              <p className="text-sm font-semibold text-gray-900">
+                {new Date(booking.eventDate).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2">
+            <MapPin className="w-5 h-5 text-cyan-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs text-gray-500">Location</p>
+              <p className="text-sm font-semibold text-gray-900">{booking.eventCity}</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2">
+            <DollarSign className="w-5 h-5 text-cyan-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs text-gray-500">Package</p>
+              <p className="text-sm font-semibold text-gray-900">{booking.selectedPackage?.name}</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2">
+            <Clock className="w-5 h-5 text-cyan-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs text-gray-500">Requested</p>
+              <p className="text-sm font-semibold text-gray-900">
+                {new Date(booking.createdAt).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Pricing Info */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm text-gray-600">Total Price:</span>
+            <span className="text-lg font-bold text-gray-900">৳{booking.totalPrice.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm text-gray-600">Advance Payment (10%):</span>
+            <span className={`text-lg font-bold ${booking.payment.advancePaid ? 'text-green-600' : 'text-orange-600'}`}>
+              ৳{booking.advancePayment.toLocaleString()}
+              {booking.payment.advancePaid && ' ✓'}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600">Remaining:</span>
+            <span className="text-sm font-semibold text-gray-700">৳{booking.remainingPayment.toLocaleString()}</span>
+          </div>
+        </div>
+
+        {/* Review Status */}
+        {hasReviewed && booking.review && (
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <p className="text-sm font-semibold text-green-800">You've reviewed this service!</p>
+            </div>
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  size={16}
+                  className={star <= booking.review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
+                />
+              ))}
+              <span className="ml-2 text-sm font-bold text-gray-700">{booking.review.rating}/5</span>
+            </div>
+          </div>
+        )}
+
+        {/* Vendor Contact (Only if paid) */}
+        {canViewContact && booking.vendor && (
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4 mb-4">
+            <p className="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              Vendor Contact Details:
+            </p>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-sm text-green-700">
+                <Phone className="w-4 h-4" />
+                <span>{booking.vendor.phone}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-green-700">
+                <Mail className="w-4 h-4" />
+                <span>{booking.vendor.email}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => onViewDetails(booking)}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-all"
+          >
+            <Eye className="w-4 h-4" />
+            View Details
+          </button>
+
+          {canPay && (
+            <button
+              onClick={() => onPay(booking)}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-lg font-semibold transition-all shadow-md"
+            >
+              <CreditCard className="w-4 h-4" />
+              Pay Now
+            </button>
+          )}
+
+          {canReview && (
+            <button
+              onClick={() => onReview(booking)}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white rounded-lg font-semibold transition-all shadow-md"
+            >
+              <Star className="w-4 h-4 fill-white" />
+              Rate Service
+            </button>
+          )}
+
+          {canCancel && (
+            <button
+              onClick={() => onCancel(booking)}
+              className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-semibold transition-all"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main User Bookings Page
 export default function UserBookingsPage() {
   const router = useRouter();
@@ -348,9 +555,9 @@ export default function UserBookingsPage() {
   const [user, setUser] = useState(null);
   const [filter, setFilter] = useState('all');
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [reviewBooking, setReviewBooking] = useState(null);
 
   useEffect(() => {
-    // Check if user is logged in
     const userData = localStorage.getItem('userData');
     const userToken = localStorage.getItem('userToken');
 
@@ -361,7 +568,7 @@ export default function UserBookingsPage() {
     }
 
     setUser(JSON.parse(userData));
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (user) {
@@ -407,7 +614,6 @@ export default function UserBookingsPage() {
       const data = await response.json();
 
       if (data.success && data.paymentUrl) {
-        // Redirect to payment gateway
         window.location.href = data.paymentUrl;
       } else {
         alert('❌ Failed to initiate payment: ' + data.message);
@@ -444,7 +650,7 @@ export default function UserBookingsPage() {
 
       if (data.success) {
         alert('✅ Booking cancelled successfully');
-        fetchBookings(); // Refresh list
+        fetchBookings();
       } else {
         alert('❌ Failed to cancel booking: ' + data.message);
       }
@@ -454,21 +660,58 @@ export default function UserBookingsPage() {
     }
   };
 
+  const handleSubmitReview = async ({ rating, comment }) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API}/services/${reviewBooking.service._id}/review`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            bookingId: reviewBooking._id,
+            userId: user._id || user.id,
+            name: user.name,
+            avatar: user.avatar || '',
+            rating,
+            comment,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('✅ Thank you for your review!');
+        setReviewBooking(null);
+        fetchBookings();
+      } else {
+        alert('❌ Failed to submit review: ' + data.message);
+      }
+    } catch (error) {
+      console.error('Review error:', error);
+      alert('❌ Failed to submit review. Please try again.');
+    }
+  };
+
   if (!user) {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-cyan-50/20 to-blue-50/20 py-8">
       <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Bookings</h1>
-          <p className="text-gray-600">Manage and track all your event bookings</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            My <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-600">Bookings</span>
+          </h1>
+          <p className="text-gray-600 text-lg">Manage and track all your event bookings</p>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl shadow-md p-4 mb-6">
+        <div className="bg-white rounded-2xl shadow-md p-4 mb-6 border border-gray-100">
           <div className="flex flex-wrap gap-2">
             {[
               { value: 'all', label: 'All Bookings' },
@@ -482,9 +725,9 @@ export default function UserBookingsPage() {
               <button
                 key={item.value}
                 onClick={() => setFilter(item.value)}
-                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                className={`px-6 py-2.5 rounded-xl font-semibold transition-all ${
                   filter === item.value
-                    ? 'bg-cyan-600 text-white'
+                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -501,7 +744,7 @@ export default function UserBookingsPage() {
           </div>
         ) : bookings.length === 0 ? (
           /* Empty State */
-          <div className="bg-white rounded-xl shadow-md p-12 text-center">
+          <div className="bg-white rounded-2xl shadow-md p-12 text-center">
             <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No bookings found</h3>
             <p className="text-gray-600 mb-6">
@@ -511,7 +754,7 @@ export default function UserBookingsPage() {
             </p>
             <button
               onClick={() => router.push('/production-houses')}
-              className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-lg transition-all"
+              className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all shadow-lg"
             >
               Browse Services
             </button>
@@ -526,6 +769,7 @@ export default function UserBookingsPage() {
                 onViewDetails={setSelectedBooking}
                 onPay={handlePayNow}
                 onCancel={handleCancelBooking}
+                onReview={setReviewBooking}
               />
             ))}
           </div>
@@ -537,6 +781,15 @@ export default function UserBookingsPage() {
         <BookingDetailsModal
           booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}
+        />
+      )}
+
+      {/* Review Modal */}
+      {reviewBooking && (
+        <ReviewModal
+          booking={reviewBooking}
+          onClose={() => setReviewBooking(null)}
+          onSubmit={handleSubmitReview}
         />
       )}
     </div>

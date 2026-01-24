@@ -168,6 +168,25 @@ const bookingSchema = new mongoose.Schema(
       refundAmount: Number,
     },
 
+    // Add these fields to your schema
+hasReviewed: {
+  type: Boolean,
+  default: false,
+},
+review: {
+  rating: {
+    type: Number,
+    min: 1,
+    max: 5,
+  },
+  comment: {
+    type: String,
+  },
+  createdAt: {
+    type: Date,
+  },
+},
+
     // Timestamps for tracking
     requestedAt: {
       type: Date,

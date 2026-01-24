@@ -12,20 +12,18 @@ const AdminDashboardLayout = ({ children }) => {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [admin, setAdmin] = useState(null);
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
 
-  // ✅ FIX: Check if current page is login page (correct route)
+  // Check if current page is login page
   const isLoginPage = pathname === '/admin-login';
 
   useEffect(() => {
-    // ✅ Skip auth check if it's login page
+    // Skip auth check if it's login page
     if (isLoginPage) {
       setLoading(false);
       return;
     }
 
-    // 🎯 FIX: SAFE localStorage handling
     console.log('🔍 Checking admin authentication...');
     
     const token = localStorage.getItem('adminToken');
@@ -33,41 +31,38 @@ const AdminDashboardLayout = ({ children }) => {
 
     console.log('Token exists:', !!token);
     console.log('AdminData exists:', !!adminDataStr);
-    console.log('AdminData raw:', adminDataStr);
 
     // Check token
     if (!token || token === 'undefined') {
       console.error('❌ No valid admin token');
-      router.push('/admin-login'); // ✅ FIXED ROUTE
+      router.push('/admin-login');
       return;
     }
 
-    // 🎯 CRITICAL FIX: Check adminData before parsing
+    // Check adminData before parsing
     if (!adminDataStr || adminDataStr === 'undefined') {
       console.error('❌ No valid admin data');
-      router.push('/admin-login'); // ✅ FIXED ROUTE
+      router.push('/admin-login');
       return;
     }
 
-    // 🎯 SAFE JSON PARSE with try-catch
+    // Safe JSON parse
     try {
       const parsedAdmin = JSON.parse(adminDataStr);
       console.log('✅ Admin parsed successfully:', parsedAdmin);
       setAdmin(parsedAdmin);
     } catch (error) {
       console.error('❌ Failed to parse admin data:', error);
-      console.error('Data that failed:', adminDataStr);
-      // Clear corrupt data and redirect
       localStorage.removeItem('adminData');
       localStorage.removeItem('adminToken');
-      router.push('/admin-login'); // ✅ FIXED ROUTE
+      router.push('/admin-login');
       return;
     }
 
     setLoading(false);
   }, [router, isLoginPage, pathname]);
 
-  // ✅ If it's login page, just render children without layout
+  // If it's login page, just render children without layout
   if (isLoginPage) {
     return <>{children}</>;
   }
@@ -84,7 +79,7 @@ const AdminDashboardLayout = ({ children }) => {
     );
   }
 
-  // If no admin and not login page, return null (already redirecting)
+  // If no admin and not login page, return null
   if (!admin) {
     return null;
   }
@@ -104,11 +99,10 @@ const AdminDashboardLayout = ({ children }) => {
     console.log('🚪 Logging out...');
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminData');
-    router.push('/admin-login'); // ✅ FIXED ROUTE
+    router.push('/admin-login');
   };
 
   const handleNavigation = (item) => {
-    setActiveTab(item.id);
     router.push(item.path);
     setSidebarOpen(false);
   };
@@ -129,9 +123,9 @@ const AdminDashboardLayout = ({ children }) => {
         </button>
       </div>
 
-      {/* Sidebar */}
+      {/* 🎯 FIXED: Sidebar - Reduced width from 72 to 64 */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-screen w-72 bg-gradient-to-b from-gray-900 via-cyan-900 to-gray-900 text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0 shadow-2xl ${
+        className={`fixed top-0 left-0 z-50 h-screen w-64 bg-gradient-to-b from-gray-900 via-cyan-900 to-gray-900 text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0 shadow-2xl ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -142,7 +136,7 @@ const AdminDashboardLayout = ({ children }) => {
               <Shield size={28} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Admin Portal</h1>
+              <h1 className="text-xl font-bold">Admin Portal</h1>
               <p className="text-cyan-200 text-sm">Event-Connect</p>
             </div>
           </div>
@@ -216,9 +210,9 @@ const AdminDashboardLayout = ({ children }) => {
         />
       )}
 
-      {/* Main Content */}
-      <main className="lg:ml-72 pt-16 lg:pt-0">
-        {/* Top Bar */}
+      {/* 🎯 FIXED: Main Content - Changed from lg:ml-72 to lg:ml-64 */}
+      <main className="lg:ml-64 pt-16 lg:pt-0">
+        {/* 🎯 FIXED: Single Top Bar - Removed duplicate */}
         <div className="bg-white shadow-sm px-6 py-4 hidden lg:flex items-center justify-between border-b border-gray-200">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 capitalize">
@@ -230,13 +224,13 @@ const AdminDashboardLayout = ({ children }) => {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Notifications */}
+            {/* Notification Bell */}
             <button className="p-3 rounded-xl hover:bg-gray-100 relative transition-all">
               <Bell size={20} className="text-gray-600" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
             
-            {/* Admin Info */}
+            {/* Admin Profile Badge */}
             <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-600 to-blue-600 flex items-center justify-center text-white font-bold shadow-lg">
                 {admin?.name?.charAt(0)?.toUpperCase() || 'A'}
