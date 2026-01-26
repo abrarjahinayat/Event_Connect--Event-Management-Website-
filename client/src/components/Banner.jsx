@@ -37,6 +37,20 @@ const Banner = () => {
     }
   ];
 
+  const scrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const headerOffset = 80; // Height of fixed header
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   // Auto-play slider
   useEffect(() => {
     if (!isAutoPlaying) return;
@@ -123,7 +137,9 @@ const Banner = () => {
 
             {/* CTA Buttons */}
             <div className='flex items-center gap-6 pt-4'>
-              <button className='group relative cursor-pointer px-8 py-4 rounded-xl text-white text-lg font-outfit font-semibold overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl'>
+              <button
+               onClick={() => scrollToSection('services')}
+               className='group relative cursor-pointer px-8 py-4 rounded-xl text-white text-lg font-outfit font-semibold overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl'>
                 {/* Gradient Background */}
                 <div className='absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-300 group-hover:from-cyan-600 group-hover:to-blue-700' />
                 

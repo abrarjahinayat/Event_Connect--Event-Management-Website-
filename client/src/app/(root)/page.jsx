@@ -10,10 +10,16 @@ const page = () => {
   return (
     <div>
         <Banner/>
-        <Services/>
+        <section id="services">
+        <Services />
+      </section>
         <JoinOurNetwork/>
-        <Review/>
-        <ContactUs/>
+              <section id="reviews">
+        <Review />
+      </section>  
+       <section id="contact">
+        <ContactUs />
+      </section>
         <Footer/>
     </div>
   )

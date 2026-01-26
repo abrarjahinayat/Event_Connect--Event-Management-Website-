@@ -40,20 +40,43 @@ const Header = () => {
     alert('✅ Logged out successfully!');
   };
 
+  // 🎯 Smooth scroll to section
+  const scrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const headerOffset = 80; // Height of fixed header
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
-    <section className={`sticky top-0 z-50 transition-all duration-300 ${
+    <section className={`sticky top-0 z-50 transition-all duration-300 relative overflow-hidden ${
       scrolled 
         ? 'py-3 bg-white/95 backdrop-blur-lg shadow-lg border-b border-cyan-100' 
         : 'py-5 bg-white shadow-sm'
     }`}>
-       <div className='absolute top-0 left-0 w-[500px] h-[500px] bg-gradient-to-br from-cyan-200/30 to-blue-200/20 rounded-full blur-3xl -translate-x-1/4 -translate-y-1/4 animate-pulse' />
+      {/* 🎨 Animated Background Blobs */}
+      <div className='absolute top-0 left-0 w-[500px] h-[500px] bg-gradient-to-br from-cyan-200/30 to-blue-200/20 rounded-full blur-3xl -translate-x-1/4 -translate-y-1/4 animate-pulse' />
       <div className='absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-blue-200/20 to-cyan-200/30 rounded-full blur-3xl translate-x-1/4 translate-y-1/4 animate-pulse' style={{ animationDelay: '1s' }} />
+      
+      {/* Additional floating blobs for more depth */}
+      <div className='absolute top-1/2 left-1/3 w-[300px] h-[300px] bg-gradient-to-br from-purple-200/20 to-pink-200/20 rounded-full blur-3xl animate-float' style={{ animationDelay: '0.5s' }} />
+      
       <Container>
-        <div className='flex items-center justify-between'>
+        <div className='flex items-center justify-between relative z-10'>
           {/* Logo with Enhanced Styling */}
           <div 
             className='cursor-pointer flex items-center gap-3 group' 
-            onClick={() => router.push('/')}
+            onClick={() => {
+              router.push('/');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           >
             <div className='relative'>
               <Image src={logo} alt="logo" className='transition-transform duration-300 group-hover:scale-105' />
@@ -65,26 +88,48 @@ const Header = () => {
           {/* Navigation */}
           <div>
             <ul className='flex cursor-pointer items-center font-outfit gap-10 text-lg font-semibold text-gray-700'>
-              {/* Navigation Links with Modern Hover Effect */}
+              {/* Navigation Links with Modern Hover Effect + Smooth Scroll */}
               <li className='relative group'>
-                <Link href="/" className='flex items-center gap-1'>
+                <button
+                  onClick={() => {
+                    router.push('/');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className='flex items-center gap-1 hover:text-cyan-600 transition-colors'
+                >
                   Home
                   <div className='absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 group-hover:w-full transition-all duration-300' />
-                </Link>
+                </button>
               </li>
               
               <li className='relative group'>
-                <Link href="/services" className='flex items-center gap-1'>
+                <button
+                  onClick={() => scrollToSection('services')}
+                  className='flex items-center gap-1 hover:text-cyan-600 transition-colors'
+                >
                   Services
                   <div className='absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 group-hover:w-full transition-all duration-300' />
-                </Link>
+                </button>
+              </li>
+
+              <li className='relative group'>
+                <button
+                  onClick={() => scrollToSection('reviews')}
+                  className='flex items-center gap-1 hover:text-cyan-600 transition-colors'
+                >
+                  Reviews
+                  <div className='absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 group-hover:w-full transition-all duration-300' />
+                </button>
               </li>
               
               <li className='relative group'>
-                <Link href="/contact" className='flex items-center gap-1'>
+                <button
+                  onClick={() => scrollToSection('contact')}
+                  className='flex items-center gap-1 hover:text-cyan-600 transition-colors'
+                >
                   Contact
                   <div className='absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 group-hover:w-full transition-all duration-300' />
-                </Link>
+                </button>
               </li>
 
               {/* User Authentication */}
@@ -106,7 +151,6 @@ const Header = () => {
                     
                     <div className='text-left'>
                       <p className='text-sm font-bold text-gray-800 leading-tight'>{user.name}</p>
-                     
                     </div>
                     
                     <ChevronDown className={`w-4 h-4 text-gray-600 transition-transform duration-300 ${showDropdown ? 'rotate-180' : ''}`} />
@@ -171,10 +215,10 @@ const Header = () => {
                           </div>
                           <div>
                             <p className='font-semibold'>Massage Us</p>
-                            
                           </div>
                         </Link>
-                         <Link
+                        
+                        <Link
                           href="/user/notifications"
                           className='flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gradient-to-r hover:from-cyan-50 hover:to-blue-50 transition-all duration-200 group'
                           onClick={() => setShowDropdown(false)}
@@ -223,7 +267,7 @@ const Header = () => {
                   </li>
                   
                   <button 
-                    onClick={() => router.push('/user/signup')}
+                    onClick={() => router.push('/join-network')}
                     className='relative group cursor-pointer px-6 py-2.5 rounded-xl text-white text-base font-outfit font-semibold overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-xl'
                   >
                     {/* Gradient Background */}
@@ -234,7 +278,7 @@ const Header = () => {
                     
                     <span className='relative z-10 flex items-center gap-2'>
                       <Sparkles className='w-4 h-4' />
-                      Sign Up
+                      Join as Vendor
                     </span>
                   </button>
                 </>
@@ -256,8 +300,24 @@ const Header = () => {
           }
         }
         
+        @keyframes float {
+          0%, 100% {
+            transform: translate(0, 0) scale(1);
+          }
+          33% {
+            transform: translate(30px, -30px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
+        }
+        
         .animate-dropdown {
           animation: dropdown 0.2s ease-out;
+        }
+
+        .animate-float {
+          animation: float 20s ease-in-out infinite;
         }
       `}</style>
     </section>
