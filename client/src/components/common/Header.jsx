@@ -5,7 +5,7 @@ import Container from './Container';
 import logo from '../../images/logo.png';
 import Image from 'next/image';
 import Link from 'next/link';
-import { User, LogOut, ChevronDown, Sparkles, Bell } from 'lucide-react';
+import { User, LogOut, ChevronDown, Sparkles, Bell, Inbox } from 'lucide-react';
 
 const Header = () => {
   const router = useRouter();
@@ -161,6 +161,20 @@ const Header = () => {
                         </Link>
 
                         <Link
+                          href="/user/massages"
+                          className='flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gradient-to-r hover:from-cyan-50 hover:to-blue-50 transition-all duration-200 group'
+                          onClick={() => setShowDropdown(false)}
+                        >
+                          <div className='w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-white group-hover:shadow-md transition-all relative'>
+                            <Inbox className='w-4 h-4 text-gray-600' />
+                            <span className='absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full' />
+                          </div>
+                          <div>
+                            <p className='font-semibold'>Massage Us</p>
+                            
+                          </div>
+                        </Link>
+                         <Link
                           href="/user/notifications"
                           className='flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gradient-to-r hover:from-cyan-50 hover:to-blue-50 transition-all duration-200 group'
                           onClick={() => setShowDropdown(false)}

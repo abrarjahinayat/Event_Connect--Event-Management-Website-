@@ -2,6 +2,7 @@ import {  Sirin_Stencil, Rubik_Maps, Outfit } from "next/font/google";
 import "./globals.css";
 
 
+
 const sirin_stencil = Sirin_Stencil({
   variable: "--font-sirin-stencil",
   weight: ["400"],
@@ -33,6 +34,7 @@ export default function RootLayout({ children }) {
          suppressHydrationWarning 
       >
         {children}
+     
       </body>
     </html>
   );
