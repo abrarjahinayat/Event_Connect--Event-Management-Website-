@@ -154,7 +154,9 @@ const Banner = () => {
                 </span>
               </button>
 
-              <button className='cursor-pointer border-2 border-cyan-500 px-8 py-4 rounded-xl text-cyan-600 text-lg font-outfit font-semibold hover:bg-cyan-500 hover:text-white transition-all duration-300 hover:scale-105 hover:shadow-xl'>
+              <button
+                onClick={() => scrollToSection('join-network')}
+               className='cursor-pointer border-2 border-cyan-500 px-8 py-4 rounded-xl text-cyan-600 text-lg font-outfit font-semibold hover:bg-cyan-500 hover:text-white transition-all duration-300 hover:scale-105 hover:shadow-xl'>
                 Join as Vendor
               </button>
             </div>

@@ -13,7 +13,9 @@ const page = () => {
         <section id="services">
         <Services />
       </section>
+      <section id="join-network"> 
         <JoinOurNetwork/>
+        </section>
               <section id="reviews">
         <Review />
       </section>  
