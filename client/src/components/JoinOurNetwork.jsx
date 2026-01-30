@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, CheckCircle2, AlertCircle, Upload, FileText, X } from 'lucide-react';
 
@@ -13,6 +13,7 @@ const Container = ({ children }) => {
 
 const JoinOurNetwork = () => {
   const router = useRouter();
+  const [language, setLanguage] = useState("en");
   const [formData, setFormData] = useState({
     buisnessName: '',
     service: '',
@@ -32,7 +33,105 @@ const JoinOurNetwork = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
-  const serviceCategories = [
+  // Translations
+  const translations = {
+    en: {
+      pageTitle: 'Join Our Professional Network',
+      pageSubtitle: 'Register your business and reach thousands of potential clients',
+      basicInfo: '📋 Basic Information',
+      businessName: 'Business Name',
+      businessNamePlaceholder: 'Enter your business name',
+      serviceCategory: 'Service Category',
+      serviceCategoryPlaceholder: 'Choose service category',
+      email: 'Email Address',
+      emailPlaceholder: 'Enter your email address',
+      phone: 'Phone Number',
+      phonePlaceholder: 'Enter your phone number',
+      password: 'Password',
+      passwordPlaceholder: 'Enter your password (min 6 characters)',
+      businessVerification: '🔐 Business Verification',
+      verificationSubtitle: 'Please provide your business registration details for verification',
+      businessRegNumber: 'Business Registration Number',
+      businessRegPlaceholder: 'e.g., TRAD/DSCC/123456/2024',
+      ownerNID: 'Owner National ID Number',
+      ownerNIDPlaceholder: 'e.g., 1234567890123',
+      uploadTradeLicense: 'Upload Trade License',
+      uploadTradeLicenseSub: '(PDF or Image)',
+      uploadNID: 'Upload NID Copy',
+      uploadNIDSub: '(PDF or Image)',
+      clickToUpload: 'Click to upload',
+      dragDrop: 'or drag and drop',
+      fileTypes: 'PDF, JPG, PNG (Max 20MB)',
+      verificationNote: 'Document Verification',
+      verificationText: 'Your documents will be reviewed by our admin team within 24-48 hours. You\'ll receive an email notification once verified.',
+      submitButton: 'Register Your Business',
+      submitting: 'Submitting for Verification...',
+      alreadyAccount: 'Already have an account?',
+      loginHere: 'Login here',
+      termsText: 'By registering, you agree to our',
+      termsService: 'Terms of Service',
+      and: 'and',
+      privacyPolicy: 'Privacy Policy',
+      required: '*',
+      serviceCategories: [
+        'Production Houses',
+        'Community Centers',
+        'Event Management',
+        'Photographers',
+        'Cinematographers',
+        'Cooks & Caterers'
+      ]
+    },
+    bn: {
+      pageTitle: 'আমাদের পেশাদার নেটওয়ার্কে যোগ দিন',
+      pageSubtitle: 'আপনার ব্যবসা নিবন্ধন করুন এবং হাজারো সম্ভাব্য ক্লায়েন্টদের কাছে পৌঁছান',
+      basicInfo: '📋 মৌলিক তথ্য',
+      businessName: 'ব্যবসার নাম',
+      businessNamePlaceholder: 'আপনার ব্যবসার নাম লিখুন',
+      serviceCategory: 'সেবার ক্যাটাগরি',
+      serviceCategoryPlaceholder: 'সেবার ক্যাটাগরি নির্বাচন করুন',
+      email: 'ইমেইল ঠিকানা',
+      emailPlaceholder: 'আপনার ইমেইল ঠিকানা লিখুন',
+      phone: 'ফোন নম্বর',
+      phonePlaceholder: 'আপনার ফোন নম্বর লিখুন',
+      password: 'পাসওয়ার্ড',
+      passwordPlaceholder: 'আপনার পাসওয়ার্ড লিখুন (নূন্যতম ৬ অক্ষর)',
+      businessVerification: '🔐 ব্যবসা যাচাইকরণ',
+      verificationSubtitle: 'যাচাইকরণের জন্য আপনার ব্যবসা নিবন্ধনের বিবরণ প্রদান করুন',
+      businessRegNumber: 'ব্যবসা নিবন্ধন নম্বর',
+      businessRegPlaceholder: 'যেমন: TRAD/DSCC/123456/2024',
+      ownerNID: 'মালিকের জাতীয় পরিচয়পত্র নম্বর',
+      ownerNIDPlaceholder: 'যেমন: ১২৩৪৫৬৭৮৯০১২৩',
+      uploadTradeLicense: 'ট্রেড লাইসেন্স আপলোড করুন',
+      uploadTradeLicenseSub: '(PDF বা ছবি)',
+      uploadNID: 'NID কপি আপলোড করুন',
+      uploadNIDSub: '(PDF বা ছবি)',
+      clickToUpload: 'আপলোড করতে ক্লিক করুন',
+      dragDrop: 'অথবা ড্র্যাগ এবং ড্রপ করুন',
+      fileTypes: 'PDF, JPG, PNG (সর্বোচ্চ 20MB)',
+      verificationNote: 'নথি যাচাইকরণ',
+      verificationText: 'আপনার নথি ২৪-৪৮ ঘন্টার মধ্যে আমাদের অ্যাডমিন টিম দ্বারা পর্যালোচনা করা হবে। যাচাই হয়ে গেলে আপনি একটি ইমেইল বিজ্ঞপ্তি পাবেন।',
+      submitButton: 'আপনার ব্যবসা নিবন্ধন করুন',
+      submitting: 'যাচাইকরণের জন্য জমা দেওয়া হচ্ছে...',
+      alreadyAccount: 'ইতিমধ্যে একটি অ্যাকাউন্ট আছে?',
+      loginHere: 'এখানে লগইন করুন',
+      termsText: 'নিবন্ধন করে, আপনি আমাদের সাথে একমত হন',
+      termsService: 'সেবার শর্তাবলী',
+      and: 'এবং',
+      privacyPolicy: 'গোপনীয়তা নীতি',
+      required: '*',
+      serviceCategories: [
+        'প্রোডাকশন হাউস',
+        'কমিউনিটি সেন্টার',
+        'ইভেন্ট ম্যানেজমেন্ট',
+        'ফটোগ্রাফার',
+        'সিনেমাটোগ্রাফার',
+        'রাঁধুনি ও ক্যাটারার'
+      ]
+    }
+  };
+
+  const serviceCategoriesEn = [
     'Production Houses',
     'Community Centers',
     'Event Management',
@@ -41,13 +140,30 @@ const JoinOurNetwork = () => {
     'Cooks & Caterers'
   ];
 
+  const t = translations[language];
+
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem("preferredLanguage");
+    if (savedLanguage) {
+      setLanguage(savedLanguage);
+    }
+
+    const interval = setInterval(() => {
+      const currentLanguage = localStorage.getItem("preferredLanguage") || "en";
+      if (currentLanguage !== language) {
+        setLanguage(currentLanguage);
+      }
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [language]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
-    // Clear error when user types
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -60,21 +176,19 @@ const JoinOurNetwork = () => {
     const file = e.target.files[0];
     
     if (file) {
-      // Validate file type
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
       if (!allowedTypes.includes(file.type)) {
         setErrors(prev => ({
           ...prev,
-          [fieldName]: 'Only JPG, PNG, or PDF files are allowed'
+          [fieldName]: language === 'bn' ? 'শুধুমাত্র JPG, PNG, বা PDF ফাইল অনুমোদিত' : 'Only JPG, PNG, or PDF files are allowed'
         }));
         return;
       }
 
-      // Validate file size (max 20MB)
       if (file.size > 20 * 1024 * 1024) {
         setErrors(prev => ({
           ...prev,
-          [fieldName]: 'File size must be less than 20MB'
+          [fieldName]: language === 'bn' ? 'ফাইলের আকার ২০MB এর কম হতে হবে' : 'File size must be less than 20MB'
         }));
         return;
       }
@@ -84,7 +198,6 @@ const JoinOurNetwork = () => {
         [fieldName]: file
       }));
 
-      // Clear error
       if (errors[fieldName]) {
         setErrors(prev => ({
           ...prev,
@@ -105,48 +218,47 @@ const JoinOurNetwork = () => {
     const newErrors = {};
 
     if (!formData.buisnessName.trim()) {
-      newErrors.buisnessName = 'Business name is required';
+      newErrors.buisnessName = language === 'bn' ? 'ব্যবসার নাম প্রয়োজন' : 'Business name is required';
     }
 
     if (!formData.service) {
-      newErrors.service = 'Please select a service category';
+      newErrors.service = language === 'bn' ? 'একটি সেবা ক্যাটাগরি নির্বাচন করুন' : 'Please select a service category';
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = language === 'bn' ? 'ইমেইল প্রয়োজন' : 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = language === 'bn' ? 'একটি বৈধ ইমেইল লিখুন' : 'Please enter a valid email';
     }
 
     if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
+      newErrors.phone = language === 'bn' ? 'ফোন নম্বর প্রয়োজন' : 'Phone number is required';
     } else if (!/^[0-9]{10,15}$/.test(formData.phone.replace(/\s/g, ''))) {
-      newErrors.phone = 'Please enter a valid phone number (10-15 digits)';
+      newErrors.phone = language === 'bn' ? 'একটি বৈধ ফোন নম্বর লিখুন (১০-১৫ ডিজিট)' : 'Please enter a valid phone number (10-15 digits)';
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = language === 'bn' ? 'পাসওয়ার্ড প্রয়োজন' : 'Password is required';
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = language === 'bn' ? 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে' : 'Password must be at least 6 characters';
     }
 
-    // ✅ Validate verification fields
     if (!formData.businessRegistrationNumber.trim()) {
-      newErrors.businessRegistrationNumber = 'Business registration number is required';
+      newErrors.businessRegistrationNumber = language === 'bn' ? 'ব্যবসা নিবন্ধন নম্বর প্রয়োজন' : 'Business registration number is required';
     }
 
     if (!formData.ownerNationalId.trim()) {
-      newErrors.ownerNationalId = 'Owner National ID is required';
+      newErrors.ownerNationalId = language === 'bn' ? 'মালিকের জাতীয় পরিচয়পত্র প্রয়োজন' : 'Owner National ID is required';
     } else if (!/^[0-9]{10,17}$/.test(formData.ownerNationalId.replace(/\s/g, ''))) {
-      newErrors.ownerNationalId = 'Please enter a valid NID (10-17 digits)';
+      newErrors.ownerNationalId = language === 'bn' ? 'একটি বৈধ NID লিখুন (১০-১৭ ডিজিট)' : 'Please enter a valid NID (10-17 digits)';
     }
 
     if (!files.tradeLicense) {
-      newErrors.tradeLicense = 'Trade License document is required';
+      newErrors.tradeLicense = language === 'bn' ? 'ট্রেড লাইসেন্স নথি প্রয়োজন' : 'Trade License document is required';
     }
 
     if (!files.nidDocument) {
-      newErrors.nidDocument = 'NID document is required';
+      newErrors.nidDocument = language === 'bn' ? 'NID নথি প্রয়োজন' : 'NID document is required';
     }
 
     setErrors(newErrors);
@@ -163,10 +275,8 @@ const JoinOurNetwork = () => {
     setLoading(true);
 
     try {
-      // ✅ Create FormData for file upload
       const formDataToSend = new FormData();
       
-      // Add text fields
       formDataToSend.append('buisnessName', formData.buisnessName);
       formDataToSend.append('service', formData.service);
       formDataToSend.append('email', formData.email);
@@ -175,85 +285,90 @@ const JoinOurNetwork = () => {
       formDataToSend.append('businessRegistrationNumber', formData.businessRegistrationNumber);
       formDataToSend.append('ownerNationalId', formData.ownerNationalId);
       
-      // Add files
       formDataToSend.append('tradeLicense', files.tradeLicense);
       formDataToSend.append('nidDocument', files.nidDocument);
 
       const apiUrl = `${process.env.NEXT_PUBLIC_API}/auth/signup`;
-      
-      console.log('🔧 Sending registration with verification documents...');
 
       const response = await fetch(apiUrl, {
         method: 'POST',
         body: formDataToSend
-        // ❌ DO NOT set Content-Type header - browser will set it automatically with boundary
       });
 
-      console.log('📥 Response Status:', response.status);
-
       const data = await response.json();
-      console.log('📥 Response Data:', data);
       
       if (data.success) {
-        // Store email for OTP verification
         localStorage.setItem('verifyEmail', formData.email);
         
-        // Show success message
-        alert('✅ Registration successful! Please check your email for OTP.\n\n⏳ Your documents are pending admin verification.');
+        alert(language === 'bn' 
+          ? '✅ নিবন্ধন সফল! OTP এর জন্য আপনার ইমেইল চেক করুন।\n\n⏳ আপনার নথি অ্যাডমিন যাচাইকরণ মুলতুবি রয়েছে।'
+          : '✅ Registration successful! Please check your email for OTP.\n\n⏳ Your documents are pending admin verification.'
+        );
         
-        // Redirect to OTP verification page
         router.push('/verify-otp');
       } else {
-        console.error('❌ Registration failed:', data.message);
         alert('❌ ' + data.message);
         setErrors({ submit: data.message });
       }
     } catch (error) {
       console.error('❌ Fetch Error:', error);
-      alert('❌ Registration failed. Please check console for details.');
-      setErrors({ submit: 'Registration failed. Please check your internet connection.' });
+      alert(language === 'bn' 
+        ? '❌ নিবন্ধন ব্যর্থ হয়েছে। আপনার ইন্টারনেট সংযোগ চেক করুন।'
+        : '❌ Registration failed. Please check your internet connection.'
+      );
+      setErrors({ submit: language === 'bn' ? 'নিবন্ধন ব্যর্থ হয়েছে। আপনার ইন্টারনেট সংযোগ চেক করুন।' : 'Registration failed. Please check your internet connection.' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <section className="min-h-screen py-16 bg-gradient-to-br from-gray-50 via-white to-gray-100">
+    <section id="join-network" className="min-h-screen py-12 md:py-16 bg-gradient-to-br from-gray-50 via-white to-gray-100">
       <Container>
         <div className="max-w-2xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-cyan-500 to-green-500 rounded-full mb-4">
-              <CheckCircle2 className="w-8 h-8 text-white" />
+          <div className="text-center mb-6 md:mb-8">
+            <div className="inline-flex items-center justify-center w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-cyan-500 to-green-500 rounded-full mb-4">
+              <CheckCircle2 className="w-6 h-6 md:w-8 md:h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-outfit font-bold text-gray-900 mb-2">
-              Join Our Professional Network
+            <h1 className={`text-2xl md:text-3xl font-bold text-gray-900 mb-2 ${
+              language === 'bn' ? 'font-hind-siliguri' : 'font-outfit'
+            }`}>
+              {t.pageTitle}
             </h1>
-            <p className="text-gray-600 font-outfit">
-              Register your business and reach thousands of potential clients
+            <p className={`text-sm md:text-base text-gray-600 ${
+              language === 'bn' ? 'font-hind-siliguri' : 'font-outfit'
+            }`}>
+              {t.pageSubtitle}
             </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl shadow-xl p-8">
+          <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl shadow-xl p-6 md:p-8">
             {/* Error Alert */}
             {errors.submit && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-red-600">{errors.submit}</p>
+                <p className={`text-sm text-red-600 ${language === 'bn' ? 'font-hind-siliguri' : ''}`}>
+                  {errors.submit}
+                </p>
               </div>
             )}
 
             {/* Section 1: Basic Information */}
-            <div className="mb-8">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
-                📋 Basic Information
+            <div className="mb-6 md:mb-8">
+              <h2 className={`text-base md:text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200 ${
+                language === 'bn' ? 'font-hind-siliguri' : ''
+              }`}>
+                {t.basicInfo}
               </h2>
 
               {/* Business Name */}
-              <div className="mb-6">
-                <label htmlFor="buisnessName" className="block text-sm font-semibold text-gray-900 mb-2">
-                  Business Name *
+              <div className="mb-4 md:mb-6">
+                <label htmlFor="buisnessName" className={`block text-sm font-semibold text-gray-900 mb-2 ${
+                  language === 'bn' ? 'font-hind-siliguri' : ''
+                }`}>
+                  {t.businessName} {t.required}
                 </label>
                 <input
                   type="text"
@@ -261,25 +376,33 @@ const JoinOurNetwork = () => {
                   name="buisnessName"
                   value={formData.buisnessName}
                   onChange={handleChange}
-                  placeholder="Enter your business name"
-                  className={`w-full px-4 py-3 border ${errors.buisnessName ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent placeholder:text-gray-400 transition-colors`}
+                  placeholder={t.businessNamePlaceholder}
+                  className={`w-full px-4 py-2.5 md:py-3 border ${errors.buisnessName ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent placeholder:text-gray-400 transition-colors text-sm md:text-base ${
+                    language === 'bn' ? 'font-hind-siliguri' : ''
+                  }`}
                 />
                 {errors.buisnessName && (
-                  <p className="mt-1 text-sm text-red-600">{errors.buisnessName}</p>
+                  <p className={`mt-1 text-sm text-red-600 ${language === 'bn' ? 'font-hind-siliguri' : ''}`}>
+                    {errors.buisnessName}
+                  </p>
                 )}
               </div>
 
               {/* Service Category */}
-              <div className="mb-6">
-                <label htmlFor="service" className="block text-sm font-semibold text-gray-900 mb-2">
-                  Service Category *
+              <div className="mb-4 md:mb-6">
+                <label htmlFor="service" className={`block text-sm font-semibold text-gray-900 mb-2 ${
+                  language === 'bn' ? 'font-hind-siliguri' : ''
+                }`}>
+                  {t.serviceCategory} {t.required}
                 </label>
                 <select
                   id="service"
                   name="service"
                   value={formData.service}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 border ${errors.service ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent appearance-none bg-white text-gray-700 cursor-pointer transition-colors`}
+                  className={`w-full px-4 py-2.5 md:py-3 border ${errors.service ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent appearance-none bg-white text-gray-700 cursor-pointer transition-colors text-sm md:text-base ${
+                    language === 'bn' ? 'font-hind-siliguri' : ''
+                  }`}
                   style={{
                     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
                     backgroundRepeat: 'no-repeat',
@@ -287,23 +410,27 @@ const JoinOurNetwork = () => {
                   }}
                 >
                   <option value="" disabled>
-                    Choose service category
+                    {t.serviceCategoryPlaceholder}
                   </option>
-                  {serviceCategories.map((category, index) => (
+                  {serviceCategoriesEn.map((category, index) => (
                     <option key={index} value={category}>
-                      {category}
+                      {t.serviceCategories[index]}
                     </option>
                   ))}
                 </select>
                 {errors.service && (
-                  <p className="mt-1 text-sm text-red-600">{errors.service}</p>
+                  <p className={`mt-1 text-sm text-red-600 ${language === 'bn' ? 'font-hind-siliguri' : ''}`}>
+                    {errors.service}
+                  </p>
                 )}
               </div>
 
               {/* Email Address */}
-              <div className="mb-6">
-                <label htmlFor="email" className="block text-sm font-semibold text-gray-900 mb-2">
-                  Email Address *
+              <div className="mb-4 md:mb-6">
+                <label htmlFor="email" className={`block text-sm font-semibold text-gray-900 mb-2 ${
+                  language === 'bn' ? 'font-hind-siliguri' : ''
+                }`}>
+                  {t.email} {t.required}
                 </label>
                 <input
                   type="email"
@@ -311,18 +438,22 @@ const JoinOurNetwork = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="Enter your email address"
-                  className={`w-full px-4 py-3 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent placeholder:text-gray-400 transition-colors`}
+                  placeholder={t.emailPlaceholder}
+                  className={`w-full px-4 py-2.5 md:py-3 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent placeholder:text-gray-400 transition-colors text-sm md:text-base`}
                 />
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                  <p className={`mt-1 text-sm text-red-600 ${language === 'bn' ? 'font-hind-siliguri' : ''}`}>
+                    {errors.email}
+                  </p>
                 )}
               </div>
 
               {/* Phone Number */}
-              <div className="mb-6">
-                <label htmlFor="phone" className="block text-sm font-semibold text-gray-900 mb-2">
-                  Phone Number *
+              <div className="mb-4 md:mb-6">
+                <label htmlFor="phone" className={`block text-sm font-semibold text-gray-900 mb-2 ${
+                  language === 'bn' ? 'font-hind-siliguri' : ''
+                }`}>
+                  {t.phone} {t.required}
                 </label>
                 <input
                   type="tel"
@@ -330,18 +461,22 @@ const JoinOurNetwork = () => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="Enter your phone number"
-                  className={`w-full px-4 py-3 border ${errors.phone ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent placeholder:text-gray-400 transition-colors`}
+                  placeholder={t.phonePlaceholder}
+                  className={`w-full px-4 py-2.5 md:py-3 border ${errors.phone ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent placeholder:text-gray-400 transition-colors text-sm md:text-base`}
                 />
                 {errors.phone && (
-                  <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+                  <p className={`mt-1 text-sm text-red-600 ${language === 'bn' ? 'font-hind-siliguri' : ''}`}>
+                    {errors.phone}
+                  </p>
                 )}
               </div>
 
               {/* Password */}
-              <div className="mb-6">
-                <label htmlFor="password" className="block text-sm font-semibold text-gray-900 mb-2">
-                  Password *
+              <div className="mb-4 md:mb-6">
+                <label htmlFor="password" className={`block text-sm font-semibold text-gray-900 mb-2 ${
+                  language === 'bn' ? 'font-hind-siliguri' : ''
+                }`}>
+                  {t.password} {t.required}
                 </label>
                 <div className="relative">
                   <input
@@ -350,8 +485,10 @@ const JoinOurNetwork = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    placeholder="Enter your password (min 6 characters)"
-                    className={`w-full px-4 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent placeholder:text-gray-400 transition-colors`}
+                    placeholder={t.passwordPlaceholder}
+                    className={`w-full px-4 py-2.5 md:py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent placeholder:text-gray-400 transition-colors text-sm md:text-base ${
+                      language === 'bn' ? 'font-hind-siliguri' : ''
+                    }`}
                   />
                   <button
                     type="button"
@@ -371,24 +508,32 @@ const JoinOurNetwork = () => {
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                  <p className={`mt-1 text-sm text-red-600 ${language === 'bn' ? 'font-hind-siliguri' : ''}`}>
+                    {errors.password}
+                  </p>
                 )}
               </div>
             </div>
 
             {/* Section 2: Business Verification */}
-            <div className="mb-8 pt-6 border-t border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">
-                🔐 Business Verification
+            <div className="mb-6 md:mb-8 pt-6 border-t border-gray-200">
+              <h2 className={`text-base md:text-lg font-semibold text-gray-900 mb-2 ${
+                language === 'bn' ? 'font-hind-siliguri' : ''
+              }`}>
+                {t.businessVerification}
               </h2>
-              <p className="text-sm text-gray-600 mb-4">
-                Please provide your business registration details for verification
+              <p className={`text-xs md:text-sm text-gray-600 mb-4 ${
+                language === 'bn' ? 'font-hind-siliguri' : ''
+              }`}>
+                {t.verificationSubtitle}
               </p>
 
               {/* Business Registration Number */}
-              <div className="mb-6">
-                <label htmlFor="businessRegistrationNumber" className="block text-sm font-semibold text-gray-900 mb-2">
-                  Business Registration Number *
+              <div className="mb-4 md:mb-6">
+                <label htmlFor="businessRegistrationNumber" className={`block text-sm font-semibold text-gray-900 mb-2 ${
+                  language === 'bn' ? 'font-hind-siliguri' : ''
+                }`}>
+                  {t.businessRegNumber} {t.required}
                 </label>
                 <input
                   type="text"
@@ -396,18 +541,22 @@ const JoinOurNetwork = () => {
                   name="businessRegistrationNumber"
                   value={formData.businessRegistrationNumber}
                   onChange={handleChange}
-                  placeholder="e.g., TRAD/DSCC/123456/2024"
-                  className={`w-full px-4 py-3 border ${errors.businessRegistrationNumber ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent placeholder:text-gray-400 transition-colors`}
+                  placeholder={t.businessRegPlaceholder}
+                  className={`w-full px-4 py-2.5 md:py-3 border ${errors.businessRegistrationNumber ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent placeholder:text-gray-400 transition-colors text-sm md:text-base`}
                 />
                 {errors.businessRegistrationNumber && (
-                  <p className="mt-1 text-sm text-red-600">{errors.businessRegistrationNumber}</p>
+                  <p className={`mt-1 text-sm text-red-600 ${language === 'bn' ? 'font-hind-siliguri' : ''}`}>
+                    {errors.businessRegistrationNumber}
+                  </p>
                 )}
               </div>
 
               {/* Owner National ID */}
-              <div className="mb-6">
-                <label htmlFor="ownerNationalId" className="block text-sm font-semibold text-gray-900 mb-2">
-                  Owner National ID Number *
+              <div className="mb-4 md:mb-6">
+                <label htmlFor="ownerNationalId" className={`block text-sm font-semibold text-gray-900 mb-2 ${
+                  language === 'bn' ? 'font-hind-siliguri' : ''
+                }`}>
+                  {t.ownerNID} {t.required}
                 </label>
                 <input
                   type="text"
@@ -415,28 +564,38 @@ const JoinOurNetwork = () => {
                   name="ownerNationalId"
                   value={formData.ownerNationalId}
                   onChange={handleChange}
-                  placeholder="e.g., 1234567890123"
-                  className={`w-full px-4 py-3 border ${errors.ownerNationalId ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent placeholder:text-gray-400 transition-colors`}
+                  placeholder={t.ownerNIDPlaceholder}
+                  className={`w-full px-4 py-2.5 md:py-3 border ${errors.ownerNationalId ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent placeholder:text-gray-400 transition-colors text-sm md:text-base`}
                 />
                 {errors.ownerNationalId && (
-                  <p className="mt-1 text-sm text-red-600">{errors.ownerNationalId}</p>
+                  <p className={`mt-1 text-sm text-red-600 ${language === 'bn' ? 'font-hind-siliguri' : ''}`}>
+                    {errors.ownerNationalId}
+                  </p>
                 )}
               </div>
 
               {/* Trade License Upload */}
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Upload Trade License * (PDF or Image)
+              <div className="mb-4 md:mb-6">
+                <label className={`block text-sm font-semibold text-gray-900 mb-2 ${
+                  language === 'bn' ? 'font-hind-siliguri' : ''
+                }`}>
+                  {t.uploadTradeLicense} {t.required} {t.uploadTradeLicenseSub}
                 </label>
                 
                 {!files.tradeLicense ? (
-                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-cyan-400 hover:bg-cyan-50 transition-colors">
+                  <label className="flex flex-col items-center justify-center w-full h-28 md:h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-cyan-400 hover:bg-cyan-50 transition-colors">
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                      <p className="text-sm text-gray-600">
-                        <span className="font-semibold">Click to upload</span> or drag and drop
+                      <Upload className="w-6 h-6 md:w-8 md:h-8 text-gray-400 mb-2" />
+                      <p className={`text-xs md:text-sm text-gray-600 ${
+                        language === 'bn' ? 'font-hind-siliguri' : ''
+                      }`}>
+                        <span className="font-semibold">{t.clickToUpload}</span> {t.dragDrop}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">PDF, JPG, PNG (Max 20MB)</p>
+                      <p className={`text-[10px] md:text-xs text-gray-500 mt-1 ${
+                        language === 'bn' ? 'font-hind-siliguri' : ''
+                      }`}>
+                        {t.fileTypes}
+                      </p>
                     </div>
                     <input
                       type="file"
@@ -446,13 +605,13 @@ const JoinOurNetwork = () => {
                     />
                   </label>
                 ) : (
-                  <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <FileText className="w-8 h-8 text-green-600 flex-shrink-0" />
+                  <div className="flex items-center gap-3 p-3 md:p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <FileText className="w-6 h-6 md:w-8 md:h-8 text-green-600 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-xs md:text-sm font-medium text-gray-900 truncate">
                         {files.tradeLicense.name}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-[10px] md:text-xs text-gray-500">
                         {(files.tradeLicense.size / 1024 / 1024).toFixed(2)} MB
                       </p>
                     </div>
@@ -461,30 +620,40 @@ const JoinOurNetwork = () => {
                       onClick={() => removeFile('tradeLicense')}
                       className="p-1 hover:bg-red-100 rounded-full transition-colors"
                     >
-                      <X className="w-5 h-5 text-red-600" />
+                      <X className="w-4 h-4 md:w-5 md:h-5 text-red-600" />
                     </button>
                   </div>
                 )}
                 
                 {errors.tradeLicense && (
-                  <p className="mt-1 text-sm text-red-600">{errors.tradeLicense}</p>
+                  <p className={`mt-1 text-sm text-red-600 ${language === 'bn' ? 'font-hind-siliguri' : ''}`}>
+                    {errors.tradeLicense}
+                  </p>
                 )}
               </div>
 
               {/* NID Upload */}
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Upload NID Copy * (PDF or Image)
+              <div className="mb-4 md:mb-6">
+                <label className={`block text-sm font-semibold text-gray-900 mb-2 ${
+                  language === 'bn' ? 'font-hind-siliguri' : ''
+                }`}>
+                  {t.uploadNID} {t.required} {t.uploadNIDSub}
                 </label>
                 
                 {!files.nidDocument ? (
-                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-cyan-400 hover:bg-cyan-50 transition-colors">
+                  <label className="flex flex-col items-center justify-center w-full h-28 md:h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-cyan-400 hover:bg-cyan-50 transition-colors">
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                      <p className="text-sm text-gray-600">
-                        <span className="font-semibold">Click to upload</span> or drag and drop
+                      <Upload className="w-6 h-6 md:w-8 md:h-8 text-gray-400 mb-2" />
+                      <p className={`text-xs md:text-sm text-gray-600 ${
+                        language === 'bn' ? 'font-hind-siliguri' : ''
+                      }`}>
+                        <span className="font-semibold">{t.clickToUpload}</span> {t.dragDrop}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">PDF, JPG, PNG (Max 20MB)</p>
+                      <p className={`text-[10px] md:text-xs text-gray-500 mt-1 ${
+                        language === 'bn' ? 'font-hind-siliguri' : ''
+                      }`}>
+                        {t.fileTypes}
+                      </p>
                     </div>
                     <input
                       type="file"
@@ -494,13 +663,13 @@ const JoinOurNetwork = () => {
                     />
                   </label>
                 ) : (
-                  <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <FileText className="w-8 h-8 text-green-600 flex-shrink-0" />
+                  <div className="flex items-center gap-3 p-3 md:p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <FileText className="w-6 h-6 md:w-8 md:h-8 text-green-600 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-xs md:text-sm font-medium text-gray-900 truncate">
                         {files.nidDocument.name}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-[10px] md:text-xs text-gray-500">
                         {(files.nidDocument.size / 1024 / 1024).toFixed(2)} MB
                       </p>
                     </div>
@@ -509,25 +678,28 @@ const JoinOurNetwork = () => {
                       onClick={() => removeFile('nidDocument')}
                       className="p-1 hover:bg-red-100 rounded-full transition-colors"
                     >
-                      <X className="w-5 h-5 text-red-600" />
+                      <X className="w-4 h-4 md:w-5 md:h-5 text-red-600" />
                     </button>
                   </div>
                 )}
                 
                 {errors.nidDocument && (
-                  <p className="mt-1 text-sm text-red-600">{errors.nidDocument}</p>
+                  <p className={`mt-1 text-sm text-red-600 ${language === 'bn' ? 'font-hind-siliguri' : ''}`}>
+                    {errors.nidDocument}
+                  </p>
                 )}
               </div>
 
               {/* Info Box */}
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="p-3 md:p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex gap-3">
-                  <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-blue-800">
-                    <p className="font-semibold mb-1">Document Verification</p>
+                  <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className={`text-xs md:text-sm text-blue-800 ${
+                    language === 'bn' ? 'font-hind-siliguri' : ''
+                  }`}>
+                    <p className="font-semibold mb-1">{t.verificationNote}</p>
                     <p className="text-blue-700">
-                      Your documents will be reviewed by our admin team within 24-48 hours. 
-                      You'll receive an email notification once verified.
+                      {t.verificationText}
                     </p>
                   </div>
                 </div>
@@ -538,35 +710,41 @@ const JoinOurNetwork = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-cyan-500 to-green-500 hover:from-cyan-600 hover:to-green-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+              className={`w-full bg-gradient-to-r from-cyan-500 to-green-500 hover:from-cyan-600 hover:to-green-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl text-sm md:text-base ${
+                language === 'bn' ? 'font-hind-siliguri' : ''
+              }`}
             >
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Submitting for Verification...
+                  {t.submitting}
                 </>
               ) : (
-                'Register Your Business'
+                t.submitButton
               )}
             </button>
 
             {/* Login Link */}
-            <p className="text-center text-sm text-gray-600 mt-6">
-              Already have an account?{' '}
+            <p className={`text-center text-xs md:text-sm text-gray-600 mt-4 md:mt-6 ${
+              language === 'bn' ? 'font-hind-siliguri' : ''
+            }`}>
+              {t.alreadyAccount}{' '}
               <a href="/login" className="text-cyan-600 hover:text-cyan-700 font-semibold">
-                Login here
+                {t.loginHere}
               </a>
             </p>
 
             {/* Terms */}
-            <p className="text-center text-xs text-gray-500 mt-4">
-              By registering, you agree to our{' '}
+            <p className={`text-center text-[10px] md:text-xs text-gray-500 mt-3 md:mt-4 ${
+              language === 'bn' ? 'font-hind-siliguri' : ''
+            }`}>
+              {t.termsText}{' '}
               <a href="/terms" className="text-cyan-600 hover:text-cyan-700 font-medium">
-                Terms of Service
+                {t.termsService}
               </a>
-              {' '}and{' '}
+              {' '}{t.and}{' '}
               <a href="/privacy" className="text-cyan-600 hover:text-cyan-700 font-medium">
-                Privacy Policy
+                {t.privacyPolicy}
               </a>
             </p>
           </form>

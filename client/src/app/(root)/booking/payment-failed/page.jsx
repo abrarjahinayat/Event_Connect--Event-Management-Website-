@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { XCircle, AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
+import { XCircle, AlertTriangle, ArrowLeft, RefreshCw, Loader2 } from 'lucide-react';
 
-export default function PaymentFailedPage() {
+function PaymentFailedContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const reason = searchParams.get('reason');
@@ -90,7 +90,7 @@ export default function PaymentFailedPage() {
         {/* Action Buttons */}
         <div className="space-y-3">
           <button
-            onClick={() => router.push('/user/bookings')}
+            onClick={() => router.push('/user/booking')}
             className="w-full flex items-center justify-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-lg transition-all shadow-md hover:shadow-lg"
           >
             <RefreshCw className="w-5 h-5" />
@@ -127,5 +127,25 @@ export default function PaymentFailedPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading component for Suspense fallback
+function PaymentFailedLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="w-12 h-12 animate-spin text-red-600 mx-auto mb-4" />
+        <p className="text-gray-600">Loading payment details...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function PaymentFailedPage() {
+  return (
+    <Suspense fallback={<PaymentFailedLoading />}>
+      <PaymentFailedContent />
+    </Suspense>
   );
 }

@@ -2,5 +2,218 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========================================
+   CRITICAL: PREVENT HORIZONTAL SCROLL
+   ======================================== */
 
+/* Prevent horizontal overflow on all pages */
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
 
+/* Ensure main container doesn't overflow */
+#__next,
+main {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* ========================================
+   CUSTOM FONT CLASSES
+   ======================================== */
+
+@layer utilities {
+  .font-hind-siliguri {
+    font-family: var(--font-hind-siliguri), sans-serif;
+  }
+  
+  .font-outfit {
+    font-family: var(--font-outfit), sans-serif;
+  }
+  
+  .font-sirin-stencil {
+    font-family: var(--font-sirin-stencil), sans-serif;
+  }
+  
+  .font-rubik-maps {
+    font-family: var(--font-rubik-maps), sans-serif;
+  }
+}
+
+/* ========================================
+   BENGALI FONT OPTIMIZATION
+   ======================================== */
+
+@layer base {
+  body.font-hind-siliguri {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  
+  .font-hind-siliguri {
+    line-height: 1.6;
+  }
+  
+  .font-hind-siliguri h1,
+  .font-hind-siliguri h2,
+  .font-hind-siliguri h3 {
+    line-height: 1.3;
+  }
+}
+
+/* ========================================
+   CUSTOM SCROLLBAR
+   ======================================== */
+
+@layer utilities {
+  /* Webkit browsers (Chrome, Safari, newer Edge) */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, #06b6d4, #2563eb);
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, #0891b2, #1d4ed8);
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #06b6d4 #f1f5f9;
+  }
+}
+
+/* ========================================
+   MOBILE MENU ANIMATIONS
+   ======================================== */
+
+@layer utilities {
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slideOutRight {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .animate-slideInRight {
+    animation: slideInRight 0.3s ease-out;
+  }
+
+  .animate-slideOutRight {
+    animation: slideOutRight 0.3s ease-out;
+  }
+}
+
+/* ========================================
+   CUSTOM GRADIENT TEXT
+   ======================================== */
+
+@layer utilities {
+  .gradient-text {
+    background: linear-gradient(to right, #06b6d4, #2563eb);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* ========================================
+   CONTAINER FIXES
+   ======================================== */
+
+@layer base {
+  /* Ensure all containers stay within viewport */
+  .container {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  
+  /* Fix for sections with decorative elements */
+  section {
+    position: relative;
+    overflow-x: hidden;
+  }
+}
+
+/* ========================================
+   RESPONSIVE IMAGE FIX
+   ======================================== */
+
+@layer base {
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* ========================================
+   TEXT RENDERING
+   ======================================== */
+
+@layer base {
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* ========================================
+   FIX FOR ABSOLUTE POSITIONED ELEMENTS
+   ======================================== */
+
+@layer utilities {
+  /* Ensure absolute elements don't cause overflow */
+  .safe-absolute {
+    position: absolute;
+    max-width: 100vw;
+  }
+}
+
+/* ========================================
+   DECORATIVE BLOB FIXES
+   ======================================== */
+
+@layer components {
+  /* Ensure decorative blobs don't overflow */
+  .decorative-blob {
+    position: absolute;
+    pointer-events: none;
+    max-width: 100vw;
+  }
+}

@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle, Phone, Mail, Clock, Calendar, MapPin, DollarSign, Loader2 } from 'lucide-react';
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get('bookingId');
@@ -73,7 +73,7 @@ export default function PaymentSuccessPage() {
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Payment Verification Failed</h1>
           <p className="text-gray-600 mb-6">We couldn't verify your payment. Please contact support.</p>
           <button
-            onClick={() => router.push('/user/bookings')}
+            onClick={() => router.push('/user/booking')}
             className="bg-cyan-600 text-white px-6 py-3 rounded-lg hover:bg-cyan-700"
           >
             Go to My Bookings
@@ -139,15 +139,15 @@ export default function PaymentSuccessPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Package Price:</span>
-                    <span className="font-semibold">৳{booking.packagePrice.toLocaleString()}</span>
+                    <span className="font-semibold">৳{booking.packagePrice?.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Advance Paid (10%):</span>
-                    <span className="font-bold">৳{booking.advancePayment.toLocaleString()} ✓</span>
+                    <span className="font-bold">৳{booking.advancePayment?.toLocaleString()} ✓</span>
                   </div>
                   <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
                     <span className="text-gray-600">Remaining Amount:</span>
-                    <span className="font-bold text-orange-600">৳{booking.remainingPayment.toLocaleString()}</span>
+                    <span className="font-bold text-orange-600">৳{booking.remainingPayment?.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -253,5 +253,25 @@ export default function PaymentSuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading component for Suspense fallback
+function PaymentSuccessLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-cyan-50 flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="w-12 h-12 animate-spin text-cyan-600 mx-auto mb-4" />
+        <p className="text-gray-600">Loading payment confirmation...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={<PaymentSuccessLoading />}>
+      <PaymentSuccessContent />
+    </Suspense>
   );
 }

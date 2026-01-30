@@ -6,7 +6,7 @@ export default function MainLayout({ children }) {
     <main>
         <Header/>
         {children}
-        <EventConnectChatbot/>
+       
     </main>
   );
 }
