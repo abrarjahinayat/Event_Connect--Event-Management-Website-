@@ -22,6 +22,13 @@ const vendorServicesSchema = new mongoose.Schema(
       minlength: [50, "About must be at least 50 characters"],
     },
 
+    // 🎯 NEW: Profile Picture for Individual Service Providers
+    // (Photographers, Cinematographers, Cooks & Caterers)
+    profilePicture: {
+      type: String,
+      // Required only for individual service categories
+    },
+
     // Location Information
     location: {
       type: String,
@@ -80,22 +87,33 @@ const vendorServicesSchema = new mongoose.Schema(
       required: [true, "At least one specialty is required"],
     },
 
-    // Features (Array of strings)
+    // Features (Array of strings) - NOW REQUIRED
     features: {
       type: [String],
-      default: [],
+      required: [true, "At least one feature is required"],
+      validate: {
+        validator: function(v) {
+          return v && v.length > 0 && v.some(f => f.trim() !== '');
+        },
+        message: 'At least one feature is required'
+      }
     },
 
-    // ✅ Services - Can be simple strings OR objects
-    // CHANGED: Made more flexible to accept both formats
+    // Services - Can be simple strings OR objects - NOW REQUIRED
     services: {
       type: [mongoose.Schema.Types.Mixed],
-      default: [],
+      required: [true, "At least one service is required"],
+      validate: {
+        validator: function(v) {
+          return v && v.length > 0;
+        },
+        message: 'At least one service is required'
+      }
     },
 
-    // Pricing Packages
-    packages: [
-      {
+    // Pricing Packages - NOW REQUIRED
+    packages: {
+      type: [{
         name: {
           type: String,
           required: true,
@@ -118,8 +136,15 @@ const vendorServicesSchema = new mongoose.Schema(
           type: Boolean,
           default: false,
         },
-      },
-    ],
+      }],
+      required: [true, "At least one package is required"],
+      validate: {
+        validator: function(v) {
+          return v && v.length > 0;
+        },
+        message: 'At least one pricing package is required'
+      }
+    },
 
     // Portfolio Items
     portfolio: [
@@ -144,7 +169,7 @@ const vendorServicesSchema = new mongoose.Schema(
       },
     ],
 
-    // Contact Information
+    // Contact Information - NOW REQUIRED
     contact: {
       phone: {
         type: String,
@@ -164,22 +189,21 @@ const vendorServicesSchema = new mongoose.Schema(
     },
 
     // Reviews
-   // Update reviews array to include userId
-reviews: [
-  {
-    id: { type: Number },
-    userId: {  // 🆕 NEW FIELD
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    },
-    name: { type: String, required: true },
-    avatar: { type: String },
-    rating: { type: Number, required: true, min: 1, max: 5 },
-    comment: { type: String, required: true },
-    date: { type: String },
-    createdAt: { type: Date, default: Date.now },
-  },
-],
+    reviews: [
+      {
+        id: { type: Number },
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+        },
+        name: { type: String, required: true },
+        avatar: { type: String },
+        rating: { type: Number, required: true, min: 1, max: 5 },
+        comment: { type: String, required: true },
+        date: { type: String },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
 
     // Vendor Reference (who owns this service)
     vendorId: {
@@ -188,7 +212,7 @@ reviews: [
       required: true,
     },
 
-    // Service Category (Production Houses, Community Centers, etc.)
+    // Service Category (from vendor registration)
     serviceCategory: {
       type: String,
       required: [true, "Service category is required"],
@@ -226,7 +250,7 @@ reviews: [
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-    strict: false // ✅ Allow flexible schema
+    strict: false
   }
 );
 
@@ -240,6 +264,11 @@ vendorServicesSchema.index({ vendorId: 1 });
 // Virtual for checking if available
 vendorServicesSchema.virtual('isAvailable').get(function() {
   return this.availability === 'Available' && this.available === true;
+});
+
+// Virtual to check if this is an individual service provider
+vendorServicesSchema.virtual('isIndividualProvider').get(function() {
+  return ['Photographers', 'Cinematographers', 'Cooks & Caterers'].includes(this.serviceCategory);
 });
 
 module.exports = mongoose.model("VendorServices", vendorServicesSchema);

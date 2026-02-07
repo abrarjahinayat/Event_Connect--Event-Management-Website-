@@ -9,26 +9,55 @@ const signupController = async (req, res, next) => {
     const otp = randomnumber();
     let { buisnessName, email, password, phone, service, businessRegistrationNumber, ownerNationalId } = req.body;
 
-    // ✅ Validate required verification fields
-    if (!businessRegistrationNumber) {
-      return res.status(400).json({
-        success: false,
-        message: "Business registration number is required"
-      });
+    console.log("📥 Signup Request");
+    console.log("📦 Service:", service);
+    console.log("📦 Business Reg Number:", businessRegistrationNumber);
+    console.log("📁 Files:", req.files);
+
+    // 🎯 CRITICAL: Define individual service categories
+    const individualServiceCategories = [
+      'Photographers',
+      'Cinematographers',
+      'Cooks & Caterers'
+    ];
+
+    // 🎯 Check if this is an individual service provider
+    const isIndividualService = individualServiceCategories.includes(service);
+
+    console.log("✅ Is Individual Service:", isIndividualService);
+
+    // 🎯 FIXED: Conditional validation based on service type
+    if (!isIndividualService) {
+      // Business services require business registration
+      if (!businessRegistrationNumber) {
+        return res.status(400).json({
+          success: false,
+          message: "Business registration number is required for business services"
+        });
+      }
+
+      // Check if files include trade license
+      if (!req.files || !req.files.tradeLicense) {
+        return res.status(400).json({
+          success: false,
+          message: "Trade License document is required for business services"
+        });
+      }
     }
 
+    // Owner NID is required for everyone
     if (!ownerNationalId) {
       return res.status(400).json({
         success: false,
-        message: "Owner National ID is required"
+        message: "National ID is required"
       });
     }
 
-    // ✅ Check if files are uploaded
-    if (!req.files || !req.files.tradeLicense || !req.files.nidDocument) {
+    // NID document is required for everyone
+    if (!req.files || !req.files.nidDocument) {
       return res.status(400).json({
         success: false,
-        message: "Trade License and NID documents are required"
+        message: "NID document is required"
       });
     }
 
@@ -42,49 +71,75 @@ const signupController = async (req, res, next) => {
       });
     }
 
-    // Check if business registration number already exists
-    let businessExists = await signupModel.findOne({ businessRegistrationNumber });
+    // 🎯 FIXED: Only check business registration for non-individual services
+    if (!isIndividualService && businessRegistrationNumber) {
+      let businessExists = await signupModel.findOne({ businessRegistrationNumber });
 
-    if (businessExists) {
-      return res.status(400).json({
-        success: false,
-        message: "Business registration number already exists"
-      });
+      if (businessExists) {
+        return res.status(400).json({
+          success: false,
+          message: "Business registration number already exists"
+        });
+      }
     }
 
-    // ✅ Hash the password BEFORE saving
+    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ✅ Get file paths from multer
-    const tradeLicensePath = req.files.tradeLicense[0].path;
-    const nidDocumentPath = req.files.nidDocument[0].path;
-    const imagePath = req.files.image ? req.files.image[0].path : null;
+    // 🎯 FIXED: Get file paths conditionally
+    let tradeLicensePath = null;
+    let tradeLicenseUrl = null;
+    
+    // Only process trade license for business services
+    if (!isIndividualService && req.files.tradeLicense) {
+      tradeLicensePath = req.files.tradeLicense[0].path;
+      tradeLicenseUrl = `${process.env.SERVER_URL}/${tradeLicensePath.replace(/\\/g, '/')}`;
+    }
 
-    // ✅ Format URLs with SERVER_URL (replace backslashes with forward slashes for Windows compatibility)
-    const tradeLicenseUrl = `${process.env.SERVER_URL}/${tradeLicensePath.replace(/\\/g, '/')}`;
+    const nidDocumentPath = req.files.nidDocument[0].path;
     const nidDocumentUrl = `${process.env.SERVER_URL}/${nidDocumentPath.replace(/\\/g, '/')}`;
+    
+    const imagePath = req.files.image ? req.files.image[0].path : null;
     const imageUrl = imagePath ? `${process.env.SERVER_URL}/${imagePath.replace(/\\/g, '/')}` : null;
 
-    // ✅ Create new user with verification documents
-    let user = new signupModel({
+    // 🎯 FIXED: Create user object conditionally
+    const userData = {
       buisnessName,
       email,
       password: hashedPassword,
       phone,
       service,
-      businessRegistrationNumber,
       ownerNationalId,
       verificationDocuments: {
-        tradeLicense: tradeLicenseUrl,
         nidDocument: nidDocumentUrl
       },
-      image: imageUrl,
       otp,
       verificationStatus: 'Pending',
       isVerified: false
+    };
+
+    // Add business-specific fields only for non-individual services
+    if (!isIndividualService) {
+      userData.businessRegistrationNumber = businessRegistrationNumber;
+      userData.verificationDocuments.tradeLicense = tradeLicenseUrl;
+    }
+
+    // Add image if provided
+    if (imageUrl) {
+      userData.image = imageUrl;
+    }
+
+    console.log("📦 Creating user with data:", {
+      ...userData,
+      password: '[HIDDEN]'
     });
 
+    // Create new user
+    let user = new signupModel(userData);
+
     await user.save();
+
+    console.log("✅ User created successfully");
 
     // Send OTP email
     sendEmail(email, otp);
@@ -99,22 +154,32 @@ const signupController = async (req, res, next) => {
       console.log("OTP removed successfully");
     }, 60000);
 
+    // 🎯 Prepare response info
     let info = {
       buisnessName: user.buisnessName,
       email: user.email,
-      businessRegistrationNumber: user.businessRegistrationNumber,
+      service: user.service,
       verificationStatus: user.verificationStatus,
-      message: "Registration successful! Please verify OTP. Your account will be reviewed by admin for verification."
+      message: isIndividualService 
+        ? "Registration successful! Please verify OTP. Your NID will be reviewed by admin for verification."
+        : "Registration successful! Please verify OTP. Your account will be reviewed by admin for verification."
     };
+
+    // Add business reg number only if it exists
+    if (user.businessRegistrationNumber) {
+      info.businessRegistrationNumber = user.businessRegistrationNumber;
+    }
 
     return res.status(201).json({
       success: true,
-      message: "User signup successfully. Pending admin verification.",
+      message: isIndividualService 
+        ? "Individual professional signup successful. Pending admin verification."
+        : "Business signup successful. Pending admin verification.",
       data: info,
     });
 
   } catch (err) {
-    console.error("Signup Error:", err);
+    console.error("❌ Signup Error:", err);
     next(err);
   }
 };
@@ -160,14 +225,13 @@ const verifyOtpControllers = async (req, res, next) => {
   }
 };
 
-// 🎯 FIXED LOGIN CONTROLLER
 const loginControllers = async (req, res, next) => {
   try {
     let { email, password } = req.body;
 
     console.log('📧 Vendor login attempt for:', email);
 
-    // ✅ Get user with password field
+    // Get user with password field
     let user = await signupModel.findOne({ email }).select('+password');
 
     if (!user) {
@@ -180,7 +244,7 @@ const loginControllers = async (req, res, next) => {
 
     console.log('✅ User found:', user.buisnessName);
 
-    // ✅ Check if user is verified
+    // Check if user is verified
     if (!user.verify) {
       console.log('❌ Email not verified');
       return res.status(403).json({
@@ -191,7 +255,7 @@ const loginControllers = async (req, res, next) => {
 
     console.log('✅ Email verified');
 
-    // ✅ Use await instead of callback
+    // Compare password
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
 
     if (isPasswordCorrect) {
@@ -205,7 +269,7 @@ const loginControllers = async (req, res, next) => {
 
       console.log('✅ Token generated');
 
-      // ✅ CRITICAL FIX: Create vendor object with all necessary fields
+      // Create vendor object with all necessary fields
       const vendorData = {
         _id: user._id,
         buisnessName: user.buisnessName,
@@ -221,12 +285,11 @@ const loginControllers = async (req, res, next) => {
 
       console.log('📦 Sending vendor data:', vendorData);
 
-      // ✅ CRITICAL: Return 'vendor' field (not 'data')
       return res.status(200).json({
         success: true,
         message: "User login successfully",
         token: token,
-        vendor: vendorData,  // ✅ THIS IS THE KEY CHANGE!
+        vendor: vendorData,
         verificationStatus: user.verificationStatus,
         isVerified: user.isVerified
       });
@@ -243,7 +306,7 @@ const loginControllers = async (req, res, next) => {
   }
 };
 
-// 🆕 NEW: Get Vendor by ID (for refreshing dashboard data)
+// Get Vendor by ID
 const getVendorByIdController = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -262,9 +325,6 @@ const getVendorByIdController = async (req, res, next) => {
     }
 
     console.log('✅ Vendor found:', vendor.buisnessName);
-    console.log('📊 Admin Rating:', vendor.adminRating);
-    console.log('📊 Verification Status:', vendor.verificationStatus);
-    console.log('📊 Is Verified:', vendor.isVerified);
 
     return res.status(200).json({
       success: true,
@@ -278,11 +338,9 @@ const getVendorByIdController = async (req, res, next) => {
   }
 };
 
-// Update exports
 module.exports = { 
   signupController, 
   verifyOtpControllers, 
   loginControllers,
-  getVendorByIdController  // 🆕 Export new controller
+  getVendorByIdController
 };
-

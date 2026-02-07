@@ -33,6 +33,16 @@ const JoinOurNetwork = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
+  // Categories that don't require business registration (individual professionals)
+  const individualServiceCategories = [
+    'Photographers',
+    'Cinematographers',
+    'Cooks & Caterers'
+  ];
+
+  // Check if selected service is an individual service
+  const isIndividualService = individualServiceCategories.includes(formData.service);
+
   // Translations
   const translations = {
     en: {
@@ -41,6 +51,8 @@ const JoinOurNetwork = () => {
       basicInfo: '📋 Basic Information',
       businessName: 'Business Name',
       businessNamePlaceholder: 'Enter your business name',
+      professionalName: 'Your Professional Name',
+      professionalNamePlaceholder: 'Enter your name',
       serviceCategory: 'Service Category',
       serviceCategoryPlaceholder: 'Choose service category',
       email: 'Email Address',
@@ -51,10 +63,14 @@ const JoinOurNetwork = () => {
       passwordPlaceholder: 'Enter your password (min 6 characters)',
       businessVerification: '🔐 Business Verification',
       verificationSubtitle: 'Please provide your business registration details for verification',
-      businessRegNumber: 'Business Registration Number',
+      personalVerification: '🔐 Personal Verification',
+      personalVerificationSubtitle: 'Please provide your NID for verification',
+      businessRegNumber: 'Business Identification Number',
       businessRegPlaceholder: 'e.g., TRAD/DSCC/123456/2024',
       ownerNID: 'Owner National ID Number',
       ownerNIDPlaceholder: 'e.g., 1234567890123',
+      yourNID: 'Your National ID Number',
+      yourNIDPlaceholder: 'e.g., 1234567890123',
       uploadTradeLicense: 'Upload Trade License',
       uploadTradeLicenseSub: '(PDF or Image)',
       uploadNID: 'Upload NID Copy',
@@ -64,7 +80,9 @@ const JoinOurNetwork = () => {
       fileTypes: 'PDF, JPG, PNG (Max 20MB)',
       verificationNote: 'Document Verification',
       verificationText: 'Your documents will be reviewed by our admin team within 24-48 hours. You\'ll receive an email notification once verified.',
+      personalVerificationText: 'Your NID will be reviewed by our admin team within 24-48 hours. You\'ll receive an email notification once verified.',
       submitButton: 'Register Your Business',
+      submitButtonIndividual: 'Register as Professional',
       submitting: 'Submitting for Verification...',
       alreadyAccount: 'Already have an account?',
       loginHere: 'Login here',
@@ -80,7 +98,9 @@ const JoinOurNetwork = () => {
         'Photographers',
         'Cinematographers',
         'Cooks & Caterers'
-      ]
+      ],
+      individualNote: 'ℹ️ Note',
+      individualNoteText: 'As an individual professional, you only need to provide your National ID for verification. No business registration is required.'
     },
     bn: {
       pageTitle: 'আমাদের পেশাদার নেটওয়ার্কে যোগ দিন',
@@ -88,6 +108,8 @@ const JoinOurNetwork = () => {
       basicInfo: '📋 মৌলিক তথ্য',
       businessName: 'ব্যবসার নাম',
       businessNamePlaceholder: 'আপনার ব্যবসার নাম লিখুন',
+      professionalName: 'আপনার পেশাদার নাম',
+      professionalNamePlaceholder: 'আপনার নাম লিখুন',
       serviceCategory: 'সেবার ক্যাটাগরি',
       serviceCategoryPlaceholder: 'সেবার ক্যাটাগরি নির্বাচন করুন',
       email: 'ইমেইল ঠিকানা',
@@ -98,10 +120,14 @@ const JoinOurNetwork = () => {
       passwordPlaceholder: 'আপনার পাসওয়ার্ড লিখুন (নূন্যতম ৬ অক্ষর)',
       businessVerification: '🔐 ব্যবসা যাচাইকরণ',
       verificationSubtitle: 'যাচাইকরণের জন্য আপনার ব্যবসা নিবন্ধনের বিবরণ প্রদান করুন',
+      personalVerification: '🔐 ব্যক্তিগত যাচাইকরণ',
+      personalVerificationSubtitle: 'যাচাইকরণের জন্য আপনার NID প্রদান করুন',
       businessRegNumber: 'ব্যবসা নিবন্ধন নম্বর',
       businessRegPlaceholder: 'যেমন: TRAD/DSCC/123456/2024',
       ownerNID: 'মালিকের জাতীয় পরিচয়পত্র নম্বর',
       ownerNIDPlaceholder: 'যেমন: ১২৩৪৫৬৭৮৯০১২৩',
+      yourNID: 'আপনার জাতীয় পরিচয়পত্র নম্বর',
+      yourNIDPlaceholder: 'যেমন: ১২৩৪৫৬৭৮৯০১২৩',
       uploadTradeLicense: 'ট্রেড লাইসেন্স আপলোড করুন',
       uploadTradeLicenseSub: '(PDF বা ছবি)',
       uploadNID: 'NID কপি আপলোড করুন',
@@ -111,7 +137,9 @@ const JoinOurNetwork = () => {
       fileTypes: 'PDF, JPG, PNG (সর্বোচ্চ 20MB)',
       verificationNote: 'নথি যাচাইকরণ',
       verificationText: 'আপনার নথি ২৪-৪৮ ঘন্টার মধ্যে আমাদের অ্যাডমিন টিম দ্বারা পর্যালোচনা করা হবে। যাচাই হয়ে গেলে আপনি একটি ইমেইল বিজ্ঞপ্তি পাবেন।',
+      personalVerificationText: 'আপনার NID ২৪-৪৮ ঘন্টার মধ্যে আমাদের অ্যাডমিন টিম দ্বারা পর্যালোচনা করা হবে। যাচাই হয়ে গেলে আপনি একটি ইমেইল বিজ্ঞপ্তি পাবেন।',
       submitButton: 'আপনার ব্যবসা নিবন্ধন করুন',
+      submitButtonIndividual: 'পেশাদার হিসেবে নিবন্ধন করুন',
       submitting: 'যাচাইকরণের জন্য জমা দেওয়া হচ্ছে...',
       alreadyAccount: 'ইতিমধ্যে একটি অ্যাকাউন্ট আছে?',
       loginHere: 'এখানে লগইন করুন',
@@ -127,7 +155,9 @@ const JoinOurNetwork = () => {
         'ফটোগ্রাফার',
         'সিনেমাটোগ্রাফার',
         'রাঁধুনি ও ক্যাটারার'
-      ]
+      ],
+      individualNote: 'ℹ️ বিঃদ্রঃ',
+      individualNoteText: 'একজন ব্যক্তিগত পেশাদার হিসাবে, আপনাকে শুধুমাত্র যাচাইকরণের জন্য আপনার জাতীয় পরিচয়পত্র প্রদান করতে হবে। কোন ব্যবসা নিবন্ধনের প্রয়োজন নেই।'
     }
   };
 
@@ -157,6 +187,27 @@ const JoinOurNetwork = () => {
 
     return () => clearInterval(interval);
   }, [language]);
+
+  // Clear business-related fields when switching to individual service
+  useEffect(() => {
+    if (isIndividualService) {
+      setFormData(prev => ({
+        ...prev,
+        businessRegistrationNumber: ''
+      }));
+      setFiles(prev => ({
+        ...prev,
+        tradeLicense: null
+      }));
+      // Clear related errors
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.businessRegistrationNumber;
+        delete newErrors.tradeLicense;
+        return newErrors;
+      });
+    }
+  }, [isIndividualService]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -218,7 +269,9 @@ const JoinOurNetwork = () => {
     const newErrors = {};
 
     if (!formData.buisnessName.trim()) {
-      newErrors.buisnessName = language === 'bn' ? 'ব্যবসার নাম প্রয়োজন' : 'Business name is required';
+      newErrors.buisnessName = language === 'bn' 
+        ? (isIndividualService ? 'নাম প্রয়োজন' : 'ব্যবসার নাম প্রয়োজন')
+        : (isIndividualService ? 'Name is required' : 'Business name is required');
     }
 
     if (!formData.service) {
@@ -243,17 +296,21 @@ const JoinOurNetwork = () => {
       newErrors.password = language === 'bn' ? 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে' : 'Password must be at least 6 characters';
     }
 
-    if (!formData.businessRegistrationNumber.trim()) {
+    // Only validate business registration for non-individual services
+    if (!isIndividualService && !formData.businessRegistrationNumber.trim()) {
       newErrors.businessRegistrationNumber = language === 'bn' ? 'ব্যবসা নিবন্ধন নম্বর প্রয়োজন' : 'Business registration number is required';
     }
 
     if (!formData.ownerNationalId.trim()) {
-      newErrors.ownerNationalId = language === 'bn' ? 'মালিকের জাতীয় পরিচয়পত্র প্রয়োজন' : 'Owner National ID is required';
+      newErrors.ownerNationalId = language === 'bn' 
+        ? (isIndividualService ? 'জাতীয় পরিচয়পত্র প্রয়োজন' : 'মালিকের জাতীয় পরিচয়পত্র প্রয়োজন')
+        : (isIndividualService ? 'National ID is required' : 'Owner National ID is required');
     } else if (!/^[0-9]{10,17}$/.test(formData.ownerNationalId.replace(/\s/g, ''))) {
       newErrors.ownerNationalId = language === 'bn' ? 'একটি বৈধ NID লিখুন (১০-১৭ ডিজিট)' : 'Please enter a valid NID (10-17 digits)';
     }
 
-    if (!files.tradeLicense) {
+    // Only validate trade license for non-individual services
+    if (!isIndividualService && !files.tradeLicense) {
       newErrors.tradeLicense = language === 'bn' ? 'ট্রেড লাইসেন্স নথি প্রয়োজন' : 'Trade License document is required';
     }
 
@@ -282,10 +339,19 @@ const JoinOurNetwork = () => {
       formDataToSend.append('email', formData.email);
       formDataToSend.append('phone', formData.phone);
       formDataToSend.append('password', formData.password);
-      formDataToSend.append('businessRegistrationNumber', formData.businessRegistrationNumber);
+      
+      // Only send business registration for non-individual services
+      if (!isIndividualService) {
+        formDataToSend.append('businessRegistrationNumber', formData.businessRegistrationNumber);
+      }
+      
       formDataToSend.append('ownerNationalId', formData.ownerNationalId);
       
-      formDataToSend.append('tradeLicense', files.tradeLicense);
+      // Only send trade license for non-individual services
+      if (!isIndividualService && files.tradeLicense) {
+        formDataToSend.append('tradeLicense', files.tradeLicense);
+      }
+      
       formDataToSend.append('nidDocument', files.nidDocument);
 
       const apiUrl = `${process.env.NEXT_PUBLIC_API}/auth/signup`;
@@ -323,7 +389,7 @@ const JoinOurNetwork = () => {
   };
 
   return (
-    <section id="join-network" className="min-h-screen py-12 md:py-16 bg-gradient-to-br from-gray-50 via-white to-gray-100">
+    <section id="join-network" className="min-h-screen py-12 md:py-16 bg-gradient-to-br from-gray-50 via-white to-gray-100 scroll-mt-24">
       <Container>
         <div className="max-w-2xl mx-auto">
           {/* Header */}
@@ -363,12 +429,12 @@ const JoinOurNetwork = () => {
                 {t.basicInfo}
               </h2>
 
-              {/* Business Name */}
+              {/* Business/Professional Name */}
               <div className="mb-4 md:mb-6">
                 <label htmlFor="buisnessName" className={`block text-sm font-semibold text-gray-900 mb-2 ${
                   language === 'bn' ? 'font-hind-siliguri' : ''
                 }`}>
-                  {t.businessName} {t.required}
+                  {isIndividualService ? t.professionalName : t.businessName} {t.required}
                 </label>
                 <input
                   type="text"
@@ -376,7 +442,7 @@ const JoinOurNetwork = () => {
                   name="buisnessName"
                   value={formData.buisnessName}
                   onChange={handleChange}
-                  placeholder={t.businessNamePlaceholder}
+                  placeholder={isIndividualService ? t.professionalNamePlaceholder : t.businessNamePlaceholder}
                   className={`w-full px-4 py-2.5 md:py-3 border ${errors.buisnessName ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent placeholder:text-gray-400 transition-colors text-sm md:text-base ${
                     language === 'bn' ? 'font-hind-siliguri' : ''
                   }`}
@@ -424,6 +490,23 @@ const JoinOurNetwork = () => {
                   </p>
                 )}
               </div>
+
+              {/* Individual Service Note */}
+              {isIndividualService && (
+                <div className="mb-4 md:mb-6 p-3 md:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex gap-3">
+                    <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className={`text-xs md:text-sm text-blue-800 ${
+                      language === 'bn' ? 'font-hind-siliguri' : ''
+                    }`}>
+                      <p className="font-semibold mb-1">{t.individualNote}</p>
+                      <p className="text-blue-700">
+                        {t.individualNoteText}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Email Address */}
               <div className="mb-4 md:mb-6">
@@ -515,48 +598,50 @@ const JoinOurNetwork = () => {
               </div>
             </div>
 
-            {/* Section 2: Business Verification */}
+            {/* Section 2: Verification */}
             <div className="mb-6 md:mb-8 pt-6 border-t border-gray-200">
               <h2 className={`text-base md:text-lg font-semibold text-gray-900 mb-2 ${
                 language === 'bn' ? 'font-hind-siliguri' : ''
               }`}>
-                {t.businessVerification}
+                {isIndividualService ? t.personalVerification : t.businessVerification}
               </h2>
               <p className={`text-xs md:text-sm text-gray-600 mb-4 ${
                 language === 'bn' ? 'font-hind-siliguri' : ''
               }`}>
-                {t.verificationSubtitle}
+                {isIndividualService ? t.personalVerificationSubtitle : t.verificationSubtitle}
               </p>
 
-              {/* Business Registration Number */}
-              <div className="mb-4 md:mb-6">
-                <label htmlFor="businessRegistrationNumber" className={`block text-sm font-semibold text-gray-900 mb-2 ${
-                  language === 'bn' ? 'font-hind-siliguri' : ''
-                }`}>
-                  {t.businessRegNumber} {t.required}
-                </label>
-                <input
-                  type="text"
-                  id="businessRegistrationNumber"
-                  name="businessRegistrationNumber"
-                  value={formData.businessRegistrationNumber}
-                  onChange={handleChange}
-                  placeholder={t.businessRegPlaceholder}
-                  className={`w-full px-4 py-2.5 md:py-3 border ${errors.businessRegistrationNumber ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent placeholder:text-gray-400 transition-colors text-sm md:text-base`}
-                />
-                {errors.businessRegistrationNumber && (
-                  <p className={`mt-1 text-sm text-red-600 ${language === 'bn' ? 'font-hind-siliguri' : ''}`}>
-                    {errors.businessRegistrationNumber}
-                  </p>
-                )}
-              </div>
+              {/* Business Registration Number - Only for Business Services */}
+              {!isIndividualService && (
+                <div className="mb-4 md:mb-6">
+                  <label htmlFor="businessRegistrationNumber" className={`block text-sm font-semibold text-gray-900 mb-2 ${
+                    language === 'bn' ? 'font-hind-siliguri' : ''
+                  }`}>
+                    {t.businessRegNumber} {t.required}
+                  </label>
+                  <input
+                    type="text"
+                    id="businessRegistrationNumber"
+                    name="businessRegistrationNumber"
+                    value={formData.businessRegistrationNumber}
+                    onChange={handleChange}
+                    placeholder={t.businessRegPlaceholder}
+                    className={`w-full px-4 py-2.5 md:py-3 border ${errors.businessRegistrationNumber ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent placeholder:text-gray-400 transition-colors text-sm md:text-base`}
+                  />
+                  {errors.businessRegistrationNumber && (
+                    <p className={`mt-1 text-sm text-red-600 ${language === 'bn' ? 'font-hind-siliguri' : ''}`}>
+                      {errors.businessRegistrationNumber}
+                    </p>
+                  )}
+                </div>
+              )}
 
-              {/* Owner National ID */}
+              {/* National ID */}
               <div className="mb-4 md:mb-6">
                 <label htmlFor="ownerNationalId" className={`block text-sm font-semibold text-gray-900 mb-2 ${
                   language === 'bn' ? 'font-hind-siliguri' : ''
                 }`}>
-                  {t.ownerNID} {t.required}
+                  {isIndividualService ? t.yourNID : t.ownerNID} {t.required}
                 </label>
                 <input
                   type="text"
@@ -564,7 +649,7 @@ const JoinOurNetwork = () => {
                   name="ownerNationalId"
                   value={formData.ownerNationalId}
                   onChange={handleChange}
-                  placeholder={t.ownerNIDPlaceholder}
+                  placeholder={isIndividualService ? t.yourNIDPlaceholder : t.ownerNIDPlaceholder}
                   className={`w-full px-4 py-2.5 md:py-3 border ${errors.ownerNationalId ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent placeholder:text-gray-400 transition-colors text-sm md:text-base`}
                 />
                 {errors.ownerNationalId && (
@@ -574,63 +659,65 @@ const JoinOurNetwork = () => {
                 )}
               </div>
 
-              {/* Trade License Upload */}
-              <div className="mb-4 md:mb-6">
-                <label className={`block text-sm font-semibold text-gray-900 mb-2 ${
-                  language === 'bn' ? 'font-hind-siliguri' : ''
-                }`}>
-                  {t.uploadTradeLicense} {t.required} {t.uploadTradeLicenseSub}
-                </label>
-                
-                {!files.tradeLicense ? (
-                  <label className="flex flex-col items-center justify-center w-full h-28 md:h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-cyan-400 hover:bg-cyan-50 transition-colors">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="w-6 h-6 md:w-8 md:h-8 text-gray-400 mb-2" />
-                      <p className={`text-xs md:text-sm text-gray-600 ${
-                        language === 'bn' ? 'font-hind-siliguri' : ''
-                      }`}>
-                        <span className="font-semibold">{t.clickToUpload}</span> {t.dragDrop}
-                      </p>
-                      <p className={`text-[10px] md:text-xs text-gray-500 mt-1 ${
-                        language === 'bn' ? 'font-hind-siliguri' : ''
-                      }`}>
-                        {t.fileTypes}
-                      </p>
-                    </div>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => handleFileChange(e, 'tradeLicense')}
-                    />
+              {/* Trade License Upload - Only for Business Services */}
+              {!isIndividualService && (
+                <div className="mb-4 md:mb-6">
+                  <label className={`block text-sm font-semibold text-gray-900 mb-2 ${
+                    language === 'bn' ? 'font-hind-siliguri' : ''
+                  }`}>
+                    {t.uploadTradeLicense} {t.required} {t.uploadTradeLicenseSub}
                   </label>
-                ) : (
-                  <div className="flex items-center gap-3 p-3 md:p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <FileText className="w-6 h-6 md:w-8 md:h-8 text-green-600 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs md:text-sm font-medium text-gray-900 truncate">
-                        {files.tradeLicense.name}
-                      </p>
-                      <p className="text-[10px] md:text-xs text-gray-500">
-                        {(files.tradeLicense.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
+                  
+                  {!files.tradeLicense ? (
+                    <label className="flex flex-col items-center justify-center w-full h-28 md:h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-cyan-400 hover:bg-cyan-50 transition-colors">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-6 h-6 md:w-8 md:h-8 text-gray-400 mb-2" />
+                        <p className={`text-xs md:text-sm text-gray-600 ${
+                          language === 'bn' ? 'font-hind-siliguri' : ''
+                        }`}>
+                          <span className="font-semibold">{t.clickToUpload}</span> {t.dragDrop}
+                        </p>
+                        <p className={`text-[10px] md:text-xs text-gray-500 mt-1 ${
+                          language === 'bn' ? 'font-hind-siliguri' : ''
+                        }`}>
+                          {t.fileTypes}
+                        </p>
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => handleFileChange(e, 'tradeLicense')}
+                      />
+                    </label>
+                  ) : (
+                    <div className="flex items-center gap-3 p-3 md:p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <FileText className="w-6 h-6 md:w-8 md:h-8 text-green-600 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs md:text-sm font-medium text-gray-900 truncate">
+                          {files.tradeLicense.name}
+                        </p>
+                        <p className="text-[10px] md:text-xs text-gray-500">
+                          {(files.tradeLicense.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeFile('tradeLicense')}
+                        className="p-1 hover:bg-red-100 rounded-full transition-colors"
+                      >
+                        <X className="w-4 h-4 md:w-5 md:h-5 text-red-600" />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeFile('tradeLicense')}
-                      className="p-1 hover:bg-red-100 rounded-full transition-colors"
-                    >
-                      <X className="w-4 h-4 md:w-5 md:h-5 text-red-600" />
-                    </button>
-                  </div>
-                )}
-                
-                {errors.tradeLicense && (
-                  <p className={`mt-1 text-sm text-red-600 ${language === 'bn' ? 'font-hind-siliguri' : ''}`}>
-                    {errors.tradeLicense}
-                  </p>
-                )}
-              </div>
+                  )}
+                  
+                  {errors.tradeLicense && (
+                    <p className={`mt-1 text-sm text-red-600 ${language === 'bn' ? 'font-hind-siliguri' : ''}`}>
+                      {errors.tradeLicense}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* NID Upload */}
               <div className="mb-4 md:mb-6">
@@ -699,7 +786,7 @@ const JoinOurNetwork = () => {
                   }`}>
                     <p className="font-semibold mb-1">{t.verificationNote}</p>
                     <p className="text-blue-700">
-                      {t.verificationText}
+                      {isIndividualService ? t.personalVerificationText : t.verificationText}
                     </p>
                   </div>
                 </div>
@@ -720,7 +807,7 @@ const JoinOurNetwork = () => {
                   {t.submitting}
                 </>
               ) : (
-                t.submitButton
+                isIndividualService ? t.submitButtonIndividual : t.submitButton
               )}
             </button>
 
@@ -729,7 +816,7 @@ const JoinOurNetwork = () => {
               language === 'bn' ? 'font-hind-siliguri' : ''
             }`}>
               {t.alreadyAccount}{' '}
-              <a href="/login" className="text-cyan-600 hover:text-cyan-700 font-semibold">
+              <a href="/vendor/login" className="text-cyan-600 hover:text-cyan-700 font-semibold">
                 {t.loginHere}
               </a>
             </p>

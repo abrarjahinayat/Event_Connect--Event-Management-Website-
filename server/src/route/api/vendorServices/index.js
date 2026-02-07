@@ -16,7 +16,9 @@ const {
   portfolioUpload, 
   uploadPortfolioImageController 
 } = require("../../../Controller/portfolioUploadController");
-const upload = require("../../../utils/multer.img.upload");
+
+// 🎯 FIXED: Import uploadVendorService (already configured with fields)
+const { uploadVendorService, upload } = require("../../../utils/multer.img.upload");
 
 const router = express.Router();
 
@@ -30,7 +32,7 @@ router.get("/:id/reviews", getServiceReviewsController);
 router.post("/:id/review", addReviewController);
 router.get("/:identifier", getSingleServiceController);
 
-// 🎯 NEW: Portfolio image upload endpoint
+// Portfolio image upload endpoint
 router.post(
   "/upload-portfolio-image",
   portfolioUpload.single("portfolioImage"),
@@ -38,12 +40,14 @@ router.post(
 );
 
 // Protected routes (Vendor only)
+// 🎯 FIXED: Use ONLY uploadVendorService (remove upload.array)
 router.post(
   "/addservices",
-  upload.array("image", 10),
+  uploadVendorService,  // ✅ This already handles image + profilePicture
   addvendorServicesControllers
 );
 
+// 🎯 FIXED: For update, use upload.array (no profile picture needed for updates)
 router.put(
   "/:id",
   upload.array("image", 10),
@@ -52,12 +56,10 @@ router.put(
 
 router.delete("/:id", deleteServiceController);
 
-// Review routes
-router.post("/:id/review", addReviewController);
+// Review routes (duplicate removed)
+// router.post("/:id/review", addReviewController); // Already defined above
 
 // Booking routes
 router.post("/:id/book", createBookingController);
-
-
 
 module.exports = router;

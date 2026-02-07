@@ -1,21 +1,15 @@
 const express = require('express');
 const { signupController, verifyOtpControllers, loginControllers, getVendorByIdController } = require('../../../Controller/authController');
 const router = express.Router();
-const upload = require("../../../utils/multer.img.upload");
+const { uploadVendorSignup } = require("../../../utils/multer.img.upload");
 
-// ✅ Updated: Handle multiple file uploads
-// Fields: image (optional), tradeLicense (required), nidDocument (required)
-router.post('/signup', upload.fields([
-    { name: 'image', maxCount: 1 },
-    { name: 'tradeLicense', maxCount: 1 },
-    { name: 'nidDocument', maxCount: 1 }
-]), signupController);
+// ✅ FIXED: Use uploadVendorSignup directly (it's already configured with the fields)
+router.post('/signup', uploadVendorSignup, signupController);
 
 router.post('/verify-otp', verifyOtpControllers);
 router.post('/login', loginControllers);
 
-// 🆕 NEW: Get vendor by ID
+// Get vendor by ID
 router.get('/:id', getVendorByIdController);
-
 
 module.exports = router;

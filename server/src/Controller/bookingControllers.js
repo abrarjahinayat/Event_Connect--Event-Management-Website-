@@ -20,10 +20,12 @@ const askForBookingController = async (req, res) => {
       customerEmail,
       customerPhone,
       eventDate,
+      eventTime, // 🎯 NEW FIELD
       eventAddress,
       eventCity,
       selectedPackage, // { name, price, features }
       specialRequests,
+      paymentType, // 🎯 NEW FIELD: "advance" or "full"
       userId, // From auth middleware or frontend
     } = req.body;
 
@@ -34,9 +36,11 @@ const askForBookingController = async (req, res) => {
       !customerEmail ||
       !customerPhone ||
       !eventDate ||
+      !eventTime || // 🎯 NEW VALIDATION
       !eventAddress ||
       !eventCity ||
       !selectedPackage ||
+      !paymentType || // 🎯 NEW VALIDATION
       !userId
     ) {
       return res.status(400).json({
@@ -75,10 +79,19 @@ const askForBookingController = async (req, res) => {
       });
     }
 
-    // Calculate pricing (10% advance, 90% remaining)
+    // 🎯 UPDATED: Calculate pricing (5% advance, 95% remaining OR 100% full)
     const packagePrice = selectedPackage.price;
-    const advancePayment = Math.round(packagePrice * 0.1); // 10%
-    const remainingPayment = packagePrice - advancePayment; // 90%
+    let advancePayment, remainingPayment;
+
+    if (paymentType === "full") {
+      // User chooses to pay 100% upfront
+      advancePayment = packagePrice;
+      remainingPayment = 0;
+    } else {
+      // User chooses to pay 5% advance
+      advancePayment = Math.round(packagePrice * 0.05); // 5%
+      remainingPayment = packagePrice - advancePayment; // 95%
+    }
 
     // Create booking
     const newBooking = new bookingModel({
@@ -89,6 +102,7 @@ const askForBookingController = async (req, res) => {
       customerEmail,
       customerPhone,
       eventDate,
+      eventTime, // 🎯 NEW FIELD
       eventAddress,
       eventCity,
       selectedPackage: {
@@ -101,6 +115,7 @@ const askForBookingController = async (req, res) => {
       advancePayment,
       remainingPayment,
       totalPrice: packagePrice,
+      paymentType, // 🎯 NEW FIELD
       bookingStatus: "pending",
       "adminApproval.approved": false,
       "payment.paymentStatus": "unpaid",
@@ -115,7 +130,9 @@ const askForBookingController = async (req, res) => {
     return res.status(201).json({
       success: true,
       message:
-        "Booking request submitted successfully! Our admin will review and approve within 24 hours. You will receive a payment link once approved.",
+        paymentType === "full"
+          ? "Booking request submitted successfully! Our admin will review and approve within 24 hours. You will receive a payment link for full payment once approved."
+          : "Booking request submitted successfully! Our admin will review and approve within 24 hours. You will receive a payment link for 5% advance payment once approved.",
       data: {
         bookingId: newBooking._id,
         bookingStatus: newBooking.bookingStatus,
@@ -124,7 +141,9 @@ const askForBookingController = async (req, res) => {
         totalPrice: packagePrice,
         advancePayment: advancePayment,
         remainingPayment: remainingPayment,
+        paymentType: paymentType,
         eventDate: eventDate,
+        eventTime: eventTime, // 🎯 NEW FIELD
       },
     });
   } catch (error) {
@@ -211,10 +230,9 @@ const adminApproveBookingController = async (req, res) => {
   }
 };
 
-// @desc    Initiate payment (Step 3: User initiates 10% advance payment)
+// @desc    Initiate payment (Step 3: User initiates payment - 5% advance OR 100% full)
 // @route   POST /api/v1/booking/initiate-payment/:bookingId
 // @access  Private (User only)
-// @desc    Initiate payment
 const initiatePaymentController = async (req, res) => {
   try {
     const { bookingId } = req.params;
@@ -241,7 +259,7 @@ const initiatePaymentController = async (req, res) => {
     if (booking.payment.advancePaid) {
       return res.status(400).json({
         success: false,
-        message: "Advance payment already completed",
+        message: "Payment already completed",
       });
     }
 
@@ -252,20 +270,25 @@ const initiatePaymentController = async (req, res) => {
     booking.payment.transactionId = tran_id;
     await booking.save();
 
-    // ✅ FIX: Use CLIENT_URL for callbacks instead of SERVER_URL
     const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
     
+    // 🎯 UPDATED: Use advancePayment (which is either 5% or 100% based on paymentType)
+    const paymentAmount = booking.advancePayment;
+    const paymentDescription =
+      booking.paymentType === "full"
+        ? "Full Payment (100%)"
+        : "Advance Payment (5%)";
+    
     const data = {
-      total_amount: booking.advancePayment,
+      total_amount: paymentAmount,
       currency: "BDT",
       tran_id: tran_id,
-      // ✅ FIXED: Point directly to frontend pages
       success_url: `${CLIENT_URL}/booking/payment-success?tran_id=${tran_id}&bookingId=${booking._id}`,
       fail_url: `${CLIENT_URL}/booking/payment-failed?tran_id=${tran_id}&reason=payment_failed`,
       cancel_url: `${CLIENT_URL}/booking/payment-failed?tran_id=${tran_id}&reason=user_cancelled`,
-      ipn_url: `${process.env.SERVER_URL}/api/v1/booking/payment-ipn`, // Keep this as API
+      ipn_url: `${process.env.SERVER_URL}/api/v1/booking/payment-ipn`,
       shipping_method: "NO",
-      product_name: `${booking.service.companyName} - ${booking.selectedPackage.name}`,
+      product_name: `${booking.service.companyName} - ${booking.selectedPackage.name} - ${paymentDescription}`,
       product_category: "Event Service Booking",
       product_profile: "general",
 
@@ -306,7 +329,9 @@ const initiatePaymentController = async (req, res) => {
       data: {
         bookingId: booking._id,
         transactionId: tran_id,
-        advanceAmount: booking.advancePayment,
+        paymentAmount: paymentAmount,
+        paymentType: booking.paymentType,
+        paymentDescription: paymentDescription,
       },
     });
   } catch (error) {
@@ -341,7 +366,16 @@ const paymentSuccessController = async (req, res) => {
     booking.bookingStatus = "payment_completed";
     booking.payment.advancePaid = true;
     booking.payment.advancePaidAt = new Date();
-    booking.payment.paymentStatus = "advance_paid";
+    
+    // 🎯 UPDATED: Set payment status based on payment type
+    if (booking.paymentType === "full") {
+      booking.payment.paymentStatus = "fully_paid";
+      booking.payment.remainingPaid = true;
+      booking.payment.remainingPaidAt = new Date();
+    } else {
+      booking.payment.paymentStatus = "advance_paid";
+    }
+    
     booking.vendorContactShared = true; // Now user can see vendor contact
 
     await booking.save();
@@ -349,7 +383,6 @@ const paymentSuccessController = async (req, res) => {
     // TODO: Send confirmation email with vendor contact details
     // TODO: Notify vendor about new confirmed booking
 
-    // Redirect to success page
     return res.redirect(
       `${process.env.CLIENT_URL}/booking/payment-success?bookingId=${booking._id}`
     );
@@ -582,7 +615,7 @@ const paymentIPNController = async (req, res) => {
 
     if (!booking) {
       console.log('❌ Booking not found for transaction:', tran_id);
-      return res.status(200).send('OK'); // Still return OK to SSL Commerce
+      return res.status(200).send('OK');
     }
 
     // Check payment status
@@ -591,7 +624,16 @@ const paymentIPNController = async (req, res) => {
       booking.bookingStatus = "payment_completed";
       booking.payment.advancePaid = true;
       booking.payment.advancePaidAt = new Date();
-      booking.payment.paymentStatus = "advance_paid";
+      
+      // 🎯 UPDATED: Set payment status based on payment type
+      if (booking.paymentType === "full") {
+        booking.payment.paymentStatus = "fully_paid";
+        booking.payment.remainingPaid = true;
+        booking.payment.remainingPaidAt = new Date();
+      } else {
+        booking.payment.paymentStatus = "advance_paid";
+      }
+      
       booking.payment.validationId = val_id;
       booking.vendorContactShared = true;
 
@@ -612,7 +654,7 @@ const paymentIPNController = async (req, res) => {
     
   } catch (error) {
     console.error("❌ IPN error:", error);
-    return res.status(200).send('OK'); // Always return OK to SSL Commerce
+    return res.status(200).send('OK');
   }
 };
 
@@ -644,7 +686,16 @@ const verifyPaymentController = async (req, res) => {
       booking.bookingStatus = "payment_completed";
       booking.payment.advancePaid = true;
       booking.payment.advancePaidAt = new Date();
-      booking.payment.paymentStatus = "advance_paid";
+      
+      // 🎯 UPDATED: Set payment status based on payment type
+      if (booking.paymentType === "full") {
+        booking.payment.paymentStatus = "fully_paid";
+        booking.payment.remainingPaid = true;
+        booking.payment.remainingPaidAt = new Date();
+      } else {
+        booking.payment.paymentStatus = "advance_paid";
+      }
+      
       booking.vendorContactShared = true;
       await booking.save();
     }
@@ -760,7 +811,7 @@ const getVendorEarningsController = async (req, res) => {
       }
 
       // Remaining pending (advance paid but remaining not paid)
-      if (booking.payment?.advancePaid && !booking.payment?.remainingPaid) {
+      if (booking.payment?.advancePaid && !booking.payment?.remainingPaid && booking.paymentType !== "full") {
         earnings.remainingPending += booking.remainingPayment || 0;
       }
 
@@ -841,8 +892,8 @@ module.exports = {
   getUserBookingsController,
   getSingleBookingController,
   cancelBookingController,
-    paymentIPNController,
-    verifyPaymentController,
-    getVendorBookingsController,
-    getVendorEarningsController
+  paymentIPNController,
+  verifyPaymentController,
+  getVendorBookingsController,
+  getVendorEarningsController
 };

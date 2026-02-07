@@ -41,6 +41,11 @@ const bookingSchema = new mongoose.Schema(
       type: Date,
       required: [true, "Event date is required"],
     },
+    // 🎯 NEW FIELD: Event Time
+    eventTime: {
+      type: String,
+      required: [true, "Event time is required"],
+    },
     eventAddress: {
       type: String,
       required: [true, "Event address is required"],
@@ -74,17 +79,25 @@ const bookingSchema = new mongoose.Schema(
       type: Number,
       required: [true, "Package price is required"],
     },
+    // 🎯 UPDATED: Changed from 10% to 5%
     advancePayment: {
       type: Number,
       required: [true, "Advance payment is required"],
-    }, // 10% of package price
+    }, // 5% of package price
     remainingPayment: {
       type: Number,
       required: [true, "Remaining payment is required"],
-    }, // 90% of package price
+    }, // 95% of package price
     totalPrice: {
       type: Number,
       required: [true, "Total price is required"],
+    },
+    // 🎯 NEW FIELD: Payment Type
+    paymentType: {
+      type: String,
+      enum: ["advance", "full"], // "advance" = 5%, "full" = 100%
+      required: [true, "Payment type is required"],
+      default: "advance",
     },
 
     // Booking Status Workflow
@@ -95,7 +108,7 @@ const bookingSchema = new mongoose.Schema(
         "admin_reviewing", // Admin is reviewing
         "approved", // Admin approved, waiting for payment
         "payment_pending", // Payment initiated
-        "payment_completed", // Advance paid
+        "payment_completed", // Advance paid or full paid
         "confirmed", // Booking confirmed after payment
         "vendor_contacted", // Vendor contact shared with user
         "in_progress", // Event ongoing
@@ -169,23 +182,23 @@ const bookingSchema = new mongoose.Schema(
     },
 
     // Add these fields to your schema
-hasReviewed: {
-  type: Boolean,
-  default: false,
-},
-review: {
-  rating: {
-    type: Number,
-    min: 1,
-    max: 5,
-  },
-  comment: {
-    type: String,
-  },
-  createdAt: {
-    type: Date,
-  },
-},
+    hasReviewed: {
+      type: Boolean,
+      default: false,
+    },
+    review: {
+      rating: {
+        type: Number,
+        min: 1,
+        max: 5,
+      },
+      comment: {
+        type: String,
+      },
+      createdAt: {
+        type: Date,
+      },
+    },
 
     // Timestamps for tracking
     requestedAt: {

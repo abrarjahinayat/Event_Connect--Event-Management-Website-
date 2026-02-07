@@ -32,28 +32,31 @@ const signupSchema = new mongoose.Schema(
       required: false,
     },
 
-    // ✅ Vendor Verification Fields
+    // 🎯 FIXED: Business Registration Number - NOT required by default
+    // Will be validated conditionally in the controller based on service type
     businessRegistrationNumber: {
       type: String,
-      required: [true, "Business registration number is required"],
       unique: true,
+      sparse: true, // 🎯 CRITICAL: Allows null/undefined values while maintaining uniqueness
       trim: true,
     },
+    
+    // Owner NID - Required for everyone
     ownerNationalId: {
       type: String,
       required: [true, "Owner NID is required"],
       trim: true,
     },
 
-    // Verification Documents
+    // 🎯 FIXED: Verification Documents - NOT required by default
     verificationDocuments: {
       tradeLicense: {
         type: String,
-        required: [true, "Trade license is required"],
+        required: false, // 🎯 Changed from true to false
       },
       nidDocument: {
         type: String,
-        required: [true, "NID document is required"],
+        required: [true, "NID document is required"], // This is required for everyone
       },
     },
 
@@ -71,7 +74,7 @@ const signupSchema = new mongoose.Schema(
       type: Date,
     },
     
-    // ✅ FIXED: Admin Rating (Simplified to Number)
+    // Admin Rating
     adminRating: {
       type: Number,
       default: 0,

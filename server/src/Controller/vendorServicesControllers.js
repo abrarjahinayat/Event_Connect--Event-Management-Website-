@@ -2,6 +2,7 @@ const slugify = require("slugify");
 const fs = require("fs");
 const path = require("path");
 const vendorServicesModel = require("../model/vendor.services.model");
+const signupModel = require("../model/signup.model");
 
 // @desc    Add new vendor service
 // @route   POST /api/v1/services/addservices
@@ -20,18 +21,59 @@ const addvendorServicesControllers = async (req, res) => {
       services,
       packages,
       contact,
-      serviceCategory,
       vendorId,
       availability,
     } = req.body;
 
     console.log('📥 Received service submission');
-    console.log('📦 Raw portfolio data:', req.body.portfolio);
+    console.log('📦 Vendor ID:', vendorId);
+    console.log('📁 Files received:', req.files);
 
-    // Handle image uploads
-    const imagePaths = req.files?.map((item) => {
-      return `${process.env.SERVER_URL}/uploads/${item.filename}`;
-    });
+    // 🎯 Get service category from vendor registration
+    const vendor = await signupModel.findById(vendorId);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found"
+      });
+    }
+
+    const serviceCategory = vendor.service;
+    console.log('✅ Service category from vendor registration:', serviceCategory);
+
+    // 🎯 Check if individual service provider needs profile picture
+    const individualCategories = ['Photographers', 'Cinematographers', 'Cooks & Caterers'];
+    const isIndividualProvider = individualCategories.includes(serviceCategory);
+
+    let profilePicturePath = null;
+    if (isIndividualProvider) {
+      // 🎯 FIXED: When using upload.fields(), req.files is an OBJECT, not an array
+      // Access it like: req.files.profilePicture or req.files['profilePicture']
+      const profilePicFiles = req.files?.profilePicture;
+      
+      if (profilePicFiles && profilePicFiles.length > 0) {
+        profilePicturePath = `${process.env.SERVER_URL}/uploads/${profilePicFiles[0].filename}`;
+        console.log('✅ Profile picture uploaded:', profilePicturePath);
+      } else {
+        console.log('⚠️ No profile picture uploaded for individual provider');
+        // 🎯 OPTIONAL: Make it optional for now, or return error if required
+        // return res.status(400).json({
+        //   success: false,
+        //   message: `Profile picture is required for ${serviceCategory}`
+        // });
+      }
+    }
+
+    // 🎯 FIXED: Handle service images (when using upload.fields())
+    let imagePaths = [];
+    if (req.files?.image && req.files.image.length > 0) {
+      imagePaths = req.files.image.map((file) => {
+        return `${process.env.SERVER_URL}/uploads/${file.filename}`;
+      });
+    }
+
+    console.log('📸 Service images:', imagePaths.length);
+    console.log('🖼️ Profile picture:', profilePicturePath);
 
     // Generate slug from company name
     let slug = slugify(companyName, {
@@ -49,7 +91,7 @@ const addvendorServicesControllers = async (req, res) => {
     }
 
     // Validation
-    if (!companyName || !aboutYourCompany || !location || !startingPrice || !specialties || !contact || !serviceCategory ) {
+    if (!companyName || !aboutYourCompany || !location || !startingPrice || !specialties || !contact) {
       return res.status(400).json({ 
         success: false,
         message: "All required fields must be provided" 
@@ -63,14 +105,42 @@ const addvendorServicesControllers = async (req, res) => {
     if (typeof packages === 'string') packages = JSON.parse(packages);
     if (typeof contact === 'string') contact = JSON.parse(contact);
 
-    // 🎯 CRITICAL FIX: Parse portfolio
+    // Validate required fields
+    if (!features || features.length === 0 || features.every(f => !f.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one key feature is required"
+      });
+    }
+
+    if (!services || services.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one service offered is required"
+      });
+    }
+
+    if (!packages || packages.length === 0 || packages.every(p => !p.name)) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one pricing package is required"
+      });
+    }
+
+    if (!contact || !contact.phone || !contact.email) {
+      return res.status(400).json({
+        success: false,
+        message: "Contact information (phone and email) is required"
+      });
+    }
+
+    // Parse portfolio
     let portfolio = req.body.portfolio;
     if (typeof portfolio === 'string') {
       try {
         portfolio = JSON.parse(portfolio);
         console.log('✅ Portfolio parsed successfully');
         console.log('📊 Portfolio items:', portfolio.length);
-        console.log('📦 Portfolio data:', JSON.stringify(portfolio, null, 2));
       } catch (error) {
         console.error('❌ Portfolio parse error:', error);
         portfolio = [];
@@ -79,7 +149,7 @@ const addvendorServicesControllers = async (req, res) => {
       console.log('✅ Portfolio is already an array');
       console.log('📊 Portfolio items:', portfolio.length);
     } else {
-      console.log('⚠️ Portfolio is not a string or array, type:', typeof portfolio);
+      console.log('⚠️ Portfolio is not a string or array');
       portfolio = [];
     }
 
@@ -98,6 +168,7 @@ const addvendorServicesControllers = async (req, res) => {
       portfolio: portfolio || [],
       contact,
       serviceCategory,
+      profilePicture: profilePicturePath,
       vendorId,
       availability: availability || "Available",
       available: availability === "Available",
@@ -113,10 +184,9 @@ const addvendorServicesControllers = async (req, res) => {
     console.log('✅ Service created successfully!');
     console.log('📊 Service ID:', addservices._id);
     console.log('📊 Company:', addservices.companyName);
+    console.log('📊 Category:', addservices.serviceCategory);
+    console.log('📊 Profile Picture:', addservices.profilePicture);
     console.log('📊 Portfolio items saved:', addservices.portfolio?.length || 0);
-    if (addservices.portfolio && addservices.portfolio.length > 0) {
-      console.log('📸 Portfolio details:', addservices.portfolio);
-    }
 
     return res.status(201).json({
       success: true,
@@ -198,7 +268,6 @@ const getallvendorServicesControllers = async (req, res) => {
     const sortOptions = {};
     sortOptions[sortBy] = order === "asc" ? 1 : -1;
 
-    // 🎯 CRITICAL FIX: Populate vendorId with ALL fields including admin rating
     let services = await vendorServicesModel
       .find(query)
       .populate({
@@ -212,9 +281,6 @@ const getallvendorServicesControllers = async (req, res) => {
     const total = await vendorServicesModel.countDocuments(query);
 
     console.log('✅ Services fetched:', services.length);
-    if (services.length > 0) {
-      console.log('📊 First service vendor data:', services[0].vendorId);
-    }
 
     return res.status(200).json({
       success: true,
@@ -246,7 +312,6 @@ const getSingleServiceController = async (req, res) => {
 
     // Check if identifier is MongoDB ObjectId or slug
     if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
-      // It's an ObjectId
       service = await vendorServicesModel
         .findById(identifier)
         .populate({
@@ -254,7 +319,6 @@ const getSingleServiceController = async (req, res) => {
           select: "buisnessName email phone service adminRating adminRatingComment isVerified verificationStatus image"
         });
     } else {
-      // It's a slug
       service = await vendorServicesModel
         .findOne({ slug: identifier })
         .populate({
@@ -295,7 +359,6 @@ const updateServiceController = async (req, res) => {
     console.log('📥 Service ID:', id);
     console.log('📦 Received availability:', req.body.availability);
 
-    // Check if service exists
     const service = await vendorServicesModel.findById(id);
     
     if (!service) {
@@ -305,11 +368,9 @@ const updateServiceController = async (req, res) => {
       });
     }
 
-    // ✅ ONLY UPDATE AVAILABILITY - NOTHING ELSE
     if (req.body.availability) {
       service.availability = req.body.availability;
       
-      // Set available field based on availability
       if (req.body.availability === "Available") {
         service.available = true;
       } else {
@@ -317,11 +378,9 @@ const updateServiceController = async (req, res) => {
       }
     }
 
-    // Save the service
     await service.save();
 
     console.log('✅ Updated availability to:', service.availability);
-    console.log('✅ Updated available to:', service.available);
 
     return res.status(200).json({
       success: true,
@@ -354,7 +413,6 @@ const deleteServiceController = async (req, res) => {
       });
     }
 
-    // Soft delete - just mark as inactive
     service.isActive = false;
     await service.save();
 
@@ -371,11 +429,6 @@ const deleteServiceController = async (req, res) => {
     });
   }
 };
-
-// @desc    Add review to service
-// @route   POST /api/v1/services/:id/review
-// @access  Private (Customer only)
-
 
 // @desc    Get services by vendor ID
 // @route   GET /api/v1/services/vendor/:vendorId
@@ -517,7 +570,6 @@ const addReviewController = async (req, res) => {
       });
     }
 
-    // Check if user has already reviewed this service
     const existingReview = service.reviews.find(
       review => review.userId && review.userId.toString() === userId
     );
@@ -529,7 +581,6 @@ const addReviewController = async (req, res) => {
       });
     }
 
-    // Add review
     const newReview = {
       id: service.reviews.length + 1,
       userId: userId,
@@ -547,17 +598,15 @@ const addReviewController = async (req, res) => {
 
     service.reviews.push(newReview);
 
-    // Update rating and review count
     const totalRating = service.reviews.reduce((sum, review) => sum + review.rating, 0);
     service.rating = (totalRating / service.reviews.length).toFixed(1);
     service.reviewCount = service.reviews.length;
 
     await service.save();
 
-    // 🆕 If bookingId provided, mark booking as reviewed
     if (bookingId) {
       try {
-        const Booking = require('../model/booking.model'); // Adjust path as needed
+        const Booking = require('../model/booking.model');
         await Booking.findByIdAndUpdate(bookingId, {
           hasReviewed: true,
           review: {
@@ -586,20 +635,15 @@ const addReviewController = async (req, res) => {
   }
 };
 
-// 🆕 NEW: Get all reviews across all services
-// @route   GET /api/v1/services/reviews/all
-// @access  Public
 const getAllReviewsController = async (req, res) => {
   try {
     const { limit = 50, minRating } = req.query;
 
-    // Get all services with reviews
     const services = await vendorServicesModel
       .find({ isActive: true, 'reviews.0': { $exists: true } })
       .select('companyName serviceCategory reviews')
       .lean();
 
-    // Flatten all reviews with service context
     let allReviews = [];
     
     services.forEach(service => {
@@ -613,15 +657,11 @@ const getAllReviewsController = async (req, res) => {
       });
     });
 
-    // Filter by rating if specified
     if (minRating) {
       allReviews = allReviews.filter(review => review.rating >= parseFloat(minRating));
     }
 
-    // Sort by date (newest first)
     allReviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    // Limit results
     allReviews = allReviews.slice(0, parseInt(limit));
 
     return res.status(200).json({
@@ -640,9 +680,6 @@ const getAllReviewsController = async (req, res) => {
   }
 };
 
-// 🆕 NEW: Get reviews for a specific service
-// @route   GET /api/v1/services/:id/reviews
-// @access  Public
 const getServiceReviewsController = async (req, res) => {
   try {
     const { id } = req.params;
@@ -678,7 +715,6 @@ const getServiceReviewsController = async (req, res) => {
   }
 };
 
-
 module.exports = {
   addvendorServicesControllers,
   getallvendorServicesControllers,
@@ -688,7 +724,7 @@ module.exports = {
   getServicesByVendorController,
   getServicesByCategoryController,
   createBookingController,
-   addReviewController,
-  getAllReviewsController,  // 🆕
-  getServiceReviewsController,  // 🆕
+  addReviewController,
+  getAllReviewsController,
+  getServiceReviewsController,
 };
