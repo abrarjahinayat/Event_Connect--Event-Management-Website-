@@ -413,6 +413,10 @@ export default function AdminBookingsPage() {
                     <label className="text-sm text-gray-600">City</label>
                     <p className="font-semibold text-gray-900">{selectedBooking.eventCity}</p>
                   </div>
+                  <div>
+                    <label className="text-sm text-gray-600">Event Time</label>
+                    <p className="font-semibold text-gray-900">{selectedBooking.eventTime}</p>
+                  </div>
                   <div className="md:col-span-2">
                     <label className="text-sm text-gray-600">Venue Address</label>
                     <p className="font-semibold text-gray-900">{selectedBooking.eventAddress}</p>
